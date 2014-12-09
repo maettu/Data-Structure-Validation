@@ -23,35 +23,42 @@ my $schema = {
     GENERAL => {
         mandatory   => 1,
         description =>  'general settings',
-        logfile => {
-            value       =>  'qx{^/}',
-            description =>  'absolute path to logfile',
-            mandatory   => 1,
-        },
-        cachedb => {
-            value => 'qx{^/}',
-            description => 'absolute path to cache (sqlite) database file',
-            mandatory => 1,
-        },
-        history => {
-            mandatory => 1,
-        },
-        silos => {
-            mandatory   => 1,
-            description => 'silos store collected data',
-            # "members" stands for all "non-internal" fields
-            members => {
-                url => {
-                    mandatory   => 1,
-                    value       => 'qx{^https}',
-                    description => 'url of the silo server. Only https:// allowed',
-                },
-                key => {
-                    mandatory   => 1,
-                    description => 'shared secret to identify node'
-                }
-            }
+        members => {
+            logfile => {
+                value       =>  'qx{^/}',
+                description =>  'absolute path to logfile',
+                mandatory   => 1,
+            },
+            cachedb => {
+                value => 'qx{^/}',
+                description => 'absolute path to cache (sqlite) database file',
+                mandatory => 1,
+            },
+            history => {
+                mandatory => 1,
+            },
+            silos => {
+                mandatory   => 1,
+                description => 'silos store collected data',
+                # "members" stands for all "non-internal" fields
+                members => {
+                    'silo-.+' => {
+                        regex => true,
+                        properties => {
+                            url => {
+                                mandatory   => 1,
+                                value       => 'qx{^https}',
+                                description => 'url of the silo server. Only https:// allowed',
+                            },
+                            key => {
+                                mandatory   => 1,
+                                description => 'shared secret to identify node'
+                            }
+                        }
+                    }
+                                   }
 
+            }
         }
     }
 };
