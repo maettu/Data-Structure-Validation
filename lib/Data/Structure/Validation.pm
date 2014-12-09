@@ -17,78 +17,79 @@ sub new{
     return $self;
 }
 
-sub validate{
-    my $self   = shift;
-    my $config = $self->{config};
-    my $schema = $self->{schema};
-
-    # check if everything in config is in line with schema
-
-    for my $key (keys %{$config}){
-        say $key;
-
-        # Unterschied zwischen expliziten keys (GENERAL) und solchen, die
-        # "nur" da sein müssen ("silo-a", "silo-b" usw)
-        if (exists $schema->{$key}){
-            say "$key gefunden";
-#~             use Data::Dumper; say Dumper $schema->{$key};
-            for my $schema_key (keys %{$schema->{$key}}){
-                say "    $schema_key";
-            }
-        }
-        else {
-            say "$key not there";
-        }
-
-    }
-
-    # check if all mandatory fields are there
-    say "###############";
-    _check_mandatory($config, $schema, 0);
-    say "###############";
-
-#~     use Data::Dumper; say Dumper $schema;
-}
-
-sub _check_mandatory {
+# this being sub for recursive tree traversal
+sub _validate{
     my $config = shift;
     my $schema = shift;
     my $depth  = shift // 0;
 
+    for my $key (keys %{$config}){
+        print ' ' x ($depth*4), $key;
 
-    for my $key (keys %{$schema}){
+        my $key_schema_to_descend_into;
 
-        # check here
-
-        print ' ' x $depth, $key;
-
-        if (ref $schema->{$key} eq ref {}){
-            if (exists $schema->{$key}->{mandatory}
-                    and
-                $schema->{$key}->{mandatory}){
-
-                print "  ($key is mandatory)";
-
-                say "\n*** Error *** $key not found"
-                    unless (exists $config->{$key});
-
-            }
-            print "\n";
-
-            if ($key eq 'members'){
-                say "wohoo 'members'";
-                # injecting keys for all members found in $config into $schema?
-            }
-
-            _check_mandatory($config->{$key}, $schema->{$key}, $depth+4)
+        # direct match: exact declaration
+        if (exists $schema->{$key}){
+            say " ok";
+            $key_schema_to_descend_into = $key;
         }
+        # match against a pattern
         else {
-            say ": $schema->{$key}";
+            my $match;
+            for my $match_key (keys %{$schema}){
+                # TODO look if $schema-key is match enabled
+                if ($key =~ /$match_key/){
+                    say "$key matches $match_key";
+                    $key_schema_to_descend_into = $match_key;
+
+                }
+            }
+
+            unless ($key_schema_to_descend_into){
+                print " not there, keys available: ";
+                print "'$_' " for (keys %{$schema});
+                print "\n";
+                say "bailout";
+                exit;
+            }
         }
+
+        # XXX how much sense does it make to have mandatory regex enabled keys?
+
+        # recursion
+        if (ref $config->{$key} eq ref {}){
+            _validate( $config->{$key}, $schema->{$key_schema_to_descend_into}->{members}, $depth+1);
+        }
+
+        # TODO
     }
+
+    # look for missing mandatory keys in schema
+    # this is only done on this level.
+    # Otherwise "mandatory" inherited "upwards".
+    _check_mandatory_keys($config, $schema);
+
+
+
+}
+
+# check mandatory: look for mandatory fields in all hashes 1 level
+# below current level (in schema)
+# for each check if $config has a key.
+sub _check_mandatory_keys{
+    my $config = shift;
+    my $schema = shift;
+
+    # TODO
 }
 
 
+# check if everything in config is in line with schema
+sub validate{
+    my $self = shift;
+
+    _validate($self->{config}, $self->{schema});
+}
 
 =pod
 =head1 Validate a Perl Data Structure with a Schema
