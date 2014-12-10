@@ -37,28 +37,32 @@ sub _validate{
         else {
             my $match;
             for my $match_key (keys %{$schema}){
-                # TODO look if $schema-key is match enabled
+
+                # only try to match a key if it has the property
+                # _regex_ set
+                next unless $schema->{$match_key}->{_regex_};
+
                 if ($key =~ /$match_key/){
                     say "$key matches $match_key";
                     $key_schema_to_descend_into = $match_key;
 
                 }
             }
+        }
 
-            unless ($key_schema_to_descend_into){
-                print " not there, keys available: ";
-                print "'$_' " for (keys %{$schema});
-                print "\n";
-                say "bailout";
-                exit;
-            }
+        unless ($key_schema_to_descend_into){
+            print " not there, keys available: ";
+            print "'$_' " for (keys %{$schema});
+            print "\n";
+            say "bailout";
+            exit;
         }
 
         # XXX how much sense does it make to have mandatory regex enabled keys?
 
         # recursion
         if (ref $config->{$key} eq ref {}){
-            _validate( $config->{$key}, $schema->{$key_schema_to_descend_into}->{members}, $depth+1);
+            _validate( $config->{$key}, $schema->{$key_schema_to_descend_into}->{_members_}, $depth+1);
         }
 
         # TODO
