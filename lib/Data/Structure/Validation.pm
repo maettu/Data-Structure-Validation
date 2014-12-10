@@ -17,6 +17,46 @@ sub new{
     return $self;
 }
 
+sub __key_present_in_schema{
+    my $key    = shift;
+    my $config = shift;
+    my $schema = shift;
+
+    my $key_schema_to_descend_into;
+
+    # direct match: exact declaration
+    if (exists $schema->{$key}){
+        say " ok";
+        $key_schema_to_descend_into = $key;
+    }
+    # match against a pattern
+    else {
+        my $match;
+        for my $match_key (keys %{$schema}){
+
+            # only try to match a key if it has the property
+            # _regex_ set
+            next unless $schema->{$match_key}->{_regex_};
+
+            if ($key =~ /$match_key/){
+                say "$key matches $match_key";
+                $key_schema_to_descend_into = $match_key;
+
+            }
+        }
+    }
+    # XXX how much sense does it make to have mandatory regex enabled keys?
+
+    unless ($key_schema_to_descend_into){
+        print " not there, keys available: ";
+        print "'$_' " for (keys %{$schema});
+        print "\n";
+        say "bailout";
+        exit;
+    }
+    return $key_schema_to_descend_into
+}
+
 # this being sub for recursive tree traversal
 sub _validate{
     my $config = shift;
@@ -25,40 +65,7 @@ sub _validate{
 
     for my $key (keys %{$config}){
         print ' ' x ($depth*4), $key;
-
-        my $key_schema_to_descend_into;
-
-        # direct match: exact declaration
-        if (exists $schema->{$key}){
-            say " ok";
-            $key_schema_to_descend_into = $key;
-        }
-        # match against a pattern
-        else {
-            my $match;
-            for my $match_key (keys %{$schema}){
-
-                # only try to match a key if it has the property
-                # _regex_ set
-                next unless $schema->{$match_key}->{_regex_};
-
-                if ($key =~ /$match_key/){
-                    say "$key matches $match_key";
-                    $key_schema_to_descend_into = $match_key;
-
-                }
-            }
-        }
-
-        unless ($key_schema_to_descend_into){
-            print " not there, keys available: ";
-            print "'$_' " for (keys %{$schema});
-            print "\n";
-            say "bailout";
-            exit;
-        }
-
-        # XXX how much sense does it make to have mandatory regex enabled keys?
+        my $key_schema_to_descend_into = __key_present_in_schema($key, $config, $schema);
 
         # recursion
         if (ref $config->{$key} eq ref {}){
@@ -72,8 +79,6 @@ sub _validate{
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
     _check_mandatory_keys($config, $schema);
-
-
 
 }
 
