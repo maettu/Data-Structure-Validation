@@ -21,43 +21,40 @@ my $config = {
 
 my $schema = {
     GENERAL => {
-        _mandatory_   => 1,
-        _description_ => 'general settings',
-        _error-msg_   => 'Section GENERAL missing',
-        _members_ => {
+        mandatory   => 1,
+        description => 'general settings',
+        error-msg   => 'Section GENERAL missing',
+        members => {
             logfile => {
-                _value_       =>  {
-                    _string_ => '^/',
-                    # could be 'regex', 'comparison', 'range', ..?
-                    _type_   => 'regex'
-                },
-                _description_ =>  'absolute path to logfile',
-                _mandatory_   => 1,
+                value       => qr{/.*},
+                # or a coderef: value => sub{return 1},
+                description => 'absolute path to logfile',
+                mandatory   => 1,
             },
             cachedb => {
-#~                 _value_ => 'qx{^/}',
-                _description_ => 'absolute path to cache (sqlite) database file',
-                _mandatory_ => 1,
+                value => qr{/.*},
+                description => 'absolute path to cache (sqlite) database file',
+                mandatory => 1,
             },
             history => {
-                _mandatory_ => 1,
+                mandatory => 1,
             },
             silos => {
-                _mandatory_   => 1,
-                _description_ => 'silos store collected data',
+                mandatory   => 1,
+                description => 'silos store collected data',
                 # "members" stands for all "non-internal" fields
-                _members_ => {
+                members => {
                     'silo-.+' => {
-                        _regex_ => 1,
-                        _members_ => {
+                        regex => 1,
+                        members => {
                             url => {
-                                _mandatory_   => 1,
-#~                                 _value_       => 'qx{^https}',
-                                _description_ => 'url of the silo server. Only https:// allowed',
+                                mandatory   => 1,
+                                value       => qr{https.*},
+                                description => 'url of the silo server. Only https:// allowed',
                             },
                             key => {
-                                _mandatory_   => 1,
-                                _description_ => 'shared secret to identify node'
+                                mandatory   => 1,
+                                description => 'shared secret to identify node'
                             }
                         }
                     }

@@ -36,7 +36,7 @@ sub __key_present_in_schema{
 
             # only try to match a key if it has the property
             # _regex_ set
-            next unless $schema->{$match_key}->{_regex_};
+            next unless $schema->{$match_key}->{regex};
 
             if ($key =~ /$match_key/){
                 say "$key matches $match_key";
@@ -62,10 +62,22 @@ sub __value_is_valid{
     my $config = shift;
     my $schema = shift;
 
-    if (exists $schema->{$key}->{_value_}){
+    if (exists $schema->{$key}->{value}){
+        say ref($schema->{$key}->{value});
 
-        say "'$config->{$key}' should match '$schema->{$key}->{_value_}->{_string_}'";
-        say "matches" if $config->{$key} =~ m/$schema->{$key}->{_value_}->{_string_}/;
+        # currently, 2 type of restrictions are supported:
+        # (callback) code and regex
+        if (ref($schema->{$key}->{value}) eq 'CODE'){
+            # XXX implement callback harness here (if needed)
+        }
+        elsif (ref($schema->{$key}->{value}) eq 'Regexp'){
+            say "'$config->{$key}' should match '$schema->{$key}->{value}'";
+            say "matches" if $config->{$key} =~ m/^$schema->{$key}->{value}$/;
+        }
+        else{
+            say "neither CODE nor Regexp";
+        }
+
     }
 }
 
@@ -86,7 +98,7 @@ sub _validate{
 
         # recursion
         if (ref $config->{$key} eq ref {}){
-            _validate( $config->{$key}, $schema->{$key_schema_to_descend_into}->{_members_}, $depth+1);
+            _validate( $config->{$key}, $schema->{$key_schema_to_descend_into}->{members}, $depth+1);
         }
 
         # TODO
