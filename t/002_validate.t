@@ -21,9 +21,10 @@ my $config = {
 
 my $schema = {
     GENERAL => {
-        mandatory   => 1,
-        description =>  'general settings',
-        members => {
+        _mandatory_   => 1,
+        _description_ => 'general settings',
+        _error-msg_   => 'Section GENERAL missing',
+        _members_ => {
             logfile => {
                 value       =>  'qx{^/}',
                 description =>  'absolute path to logfile',
@@ -41,10 +42,10 @@ my $schema = {
                 mandatory   => 1,
                 description => 'silos store collected data',
                 # "members" stands for all "non-internal" fields
-                members => {
+                _members_ => {
                     'silo-.+' => {
-                        regex => true,
-                        properties => {
+#~                         _regex_ => 1,
+                        _members_ => {
                             url => {
                                 mandatory   => 1,
                                 value       => 'qx{^https}',
@@ -56,8 +57,7 @@ my $schema = {
                             }
                         }
                     }
-                                   }
-
+                }
             }
         }
     }
