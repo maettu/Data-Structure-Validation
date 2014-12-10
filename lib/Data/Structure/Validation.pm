@@ -57,6 +57,18 @@ sub __key_present_in_schema{
     return $key_schema_to_descend_into
 }
 
+sub __value_is_valid{
+    my $key    = shift;
+    my $config = shift;
+    my $schema = shift;
+
+    if (exists $schema->{$key}->{_value_}){
+
+        say "'$config->{$key}' should match '$schema->{$key}->{_value_}->{_string_}'";
+        say "matches" if $config->{$key} =~ m/$schema->{$key}->{_value_}->{_string_}/;
+    }
+}
+
 # this being sub for recursive tree traversal
 sub _validate{
     my $config = shift;
@@ -65,7 +77,12 @@ sub _validate{
 
     for my $key (keys %{$config}){
         print ' ' x ($depth*4), $key;
-        my $key_schema_to_descend_into = __key_present_in_schema($key, $config, $schema);
+
+        # checks
+        my $key_schema_to_descend_into =
+            __key_present_in_schema($key, $config, $schema);
+        __value_is_valid($key, $config, $schema);
+
 
         # recursion
         if (ref $config->{$key} eq ref {}){

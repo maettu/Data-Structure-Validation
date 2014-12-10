@@ -26,34 +26,38 @@ my $schema = {
         _error-msg_   => 'Section GENERAL missing',
         _members_ => {
             logfile => {
-                value       =>  'qx{^/}',
-                description =>  'absolute path to logfile',
-                mandatory   => 1,
+                _value_       =>  {
+                    _string_ => '^/',
+                    # could be 'regex', 'comparison', 'range', ..?
+                    _type_   => 'regex'
+                },
+                _description_ =>  'absolute path to logfile',
+                _mandatory_   => 1,
             },
             cachedb => {
-                value => 'qx{^/}',
-                description => 'absolute path to cache (sqlite) database file',
-                mandatory => 1,
+#~                 _value_ => 'qx{^/}',
+                _description_ => 'absolute path to cache (sqlite) database file',
+                _mandatory_ => 1,
             },
             history => {
-                mandatory => 1,
+                _mandatory_ => 1,
             },
             silos => {
-                mandatory   => 1,
-                description => 'silos store collected data',
+                _mandatory_   => 1,
+                _description_ => 'silos store collected data',
                 # "members" stands for all "non-internal" fields
                 _members_ => {
                     'silo-.+' => {
-#~                         _regex_ => 1,
+                        _regex_ => 1,
                         _members_ => {
                             url => {
-                                mandatory   => 1,
-                                value       => 'qx{^https}',
-                                description => 'url of the silo server. Only https:// allowed',
+                                _mandatory_   => 1,
+#~                                 _value_       => 'qx{^https}',
+                                _description_ => 'url of the silo server. Only https:// allowed',
                             },
                             key => {
-                                mandatory   => 1,
-                                description => 'shared secret to identify node'
+                                _mandatory_   => 1,
+                                _description_ => 'shared secret to identify node'
                             }
                         }
                     }
