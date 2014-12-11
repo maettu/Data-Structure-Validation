@@ -61,9 +61,10 @@ sub __value_is_valid{
     my $key    = shift;
     my $config = shift;
     my $schema = shift;
+    my $depth  = shift;
 
     if (exists $schema->{$key}->{value}){
-        say ref($schema->{$key}->{value});
+        say ' 'x($depth*4), ref($schema->{$key}->{value});
 
         # currently, 2 type of restrictions are supported:
         # (callback) code and regex
@@ -71,11 +72,11 @@ sub __value_is_valid{
             # XXX implement callback harness here (if needed)
         }
         elsif (ref($schema->{$key}->{value}) eq 'Regexp'){
-            say "'$config->{$key}' should match '$schema->{$key}->{value}'";
-            say "matches" if $config->{$key} =~ m/^$schema->{$key}->{value}$/;
+            say ' 'x($depth*4), "'$config->{$key}' should match '$schema->{$key}->{value}'";
+            say ' 'x($depth*4), "matches" if $config->{$key} =~ m/^$schema->{$key}->{value}$/;
         }
         else{
-            say "neither CODE nor Regexp";
+            say say ' 'x($depth*4), "neither CODE nor Regexp";
         }
 
     }
@@ -93,12 +94,16 @@ sub _validate{
         # checks
         my $key_schema_to_descend_into =
             __key_present_in_schema($key, $config, $schema);
-        __value_is_valid($key, $config, $schema);
+        __value_is_valid($key, $config, $schema, $depth);
 
 
         # recursion
         if (ref $config->{$key} eq ref {}){
-            _validate( $config->{$key}, $schema->{$key_schema_to_descend_into}->{members}, $depth+1);
+            _validate(
+                $config->{$key},
+                $schema->{$key_schema_to_descend_into}->{members},
+                $depth+1
+            );
         }
 
         # TODO
@@ -107,7 +112,7 @@ sub _validate{
     # look for missing mandatory keys in schema
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
-    _check_mandatory_keys($config, $schema);
+    _check_mandatory_keys($config, $schema, $depth);
 
 }
 
@@ -117,15 +122,31 @@ sub _validate{
 sub _check_mandatory_keys{
     my $config = shift;
     my $schema = shift;
+    my $depth  = shift;
 
-    # TODO
+    for my $key (keys %{$schema}){
+        print ' 'x($depth*4), "Checking if $key is mandatory: ";
+        if (exists $schema->{$key}->{mandatory}
+               and $schema->{$key}->{mandatory}){
+
+            say "true";
+        }
+        else{
+            say "false";
+        }
+
+    }
 }
 
+
+# TODO rename $config & $schema in subs.
+# These are only parts of the whole thing (first call excluded).
 
 # check if everything in config is in line with schema
 sub validate{
     my $self = shift;
 
+    # start (recursive) validation with top level elements
     _validate($self->{config}, $self->{schema});
 }
 
