@@ -18,25 +18,25 @@ sub new{
 }
 
 sub __key_present_in_schema{
-    my $key    = shift;
-    my $config = shift;
-    my $schema = shift;
+    my $key            = shift;
+    my $config_section = shift;
+    my $schema_section = shift;
 
     my $key_schema_to_descend_into;
 
     # direct match: exact declaration
-    if (exists $schema->{$key}){
+    if (exists $schema_section->{$key}){
         say " ok";
         $key_schema_to_descend_into = $key;
     }
     # match against a pattern
     else {
         my $match;
-        for my $match_key (keys %{$schema}){
+        for my $match_key (keys %{$schema_section}){
 
             # only try to match a key if it has the property
             # _regex_ set
-            next unless $schema->{$match_key}->{regex};
+            next unless $schema_section->{$match_key}->{regex};
 
             if ($key =~ /$match_key/){
                 say "$key matches $match_key";
@@ -49,7 +49,7 @@ sub __key_present_in_schema{
 
     unless ($key_schema_to_descend_into){
         print " not there, keys available: ";
-        print "'$_' " for (keys %{$schema});
+        print "'$_' " for (keys %{$schema_section});
         print "\n";
         say "bailout";
         exit;
@@ -59,24 +59,24 @@ sub __key_present_in_schema{
 
 sub __value_is_valid{
     my $key    = shift;
-    my $config = shift;
-    my $schema = shift;
-    my $depth  = shift;
+    my $config_section = shift;
+    my $schema_section = shift;
+    my $depth          = shift;
 
-    if (exists $schema->{$key}->{value}){
-        say ' 'x($depth*4), ref($schema->{$key}->{value});
+    if (exists $schema_section->{$key}->{value}){
+        say ' 'x($depth*4), ref($schema_section->{$key}->{value});
 
         # currently, 2 type of restrictions are supported:
         # (callback) code and regex
-        if (ref($schema->{$key}->{value}) eq 'CODE'){
+        if (ref($schema_section->{$key}->{value}) eq 'CODE'){
             # XXX implement callback harness here (if needed)
         }
-        elsif (ref($schema->{$key}->{value}) eq 'Regexp'){
-            say ' 'x($depth*4), "'$config->{$key}' should match '$schema->{$key}->{value}'";
-            say ' 'x($depth*4), "matches" if $config->{$key} =~ m/^$schema->{$key}->{value}$/;
+        elsif (ref($schema_section->{$key}->{value}) eq 'Regexp'){
+            say ' 'x($depth*4), "'$config_section->{$key}' should match '$schema_section->{$key}->{value}'";
+            say ' 'x($depth*4), "matches" if $config_section->{$key} =~ m/^$schema_section->{$key}->{value}$/;
         }
         else{
-            say say ' 'x($depth*4), "neither CODE nor Regexp";
+            say ' 'x($depth*4), "neither CODE nor Regexp";
         }
 
     }
@@ -84,35 +84,36 @@ sub __value_is_valid{
 
 # this being sub for recursive tree traversal
 sub _validate{
-    my $config = shift;
-    my $schema = shift;
-    my $depth  = shift // 0;
+    # $(word)_section are *not* the data fields but the sections of the
+    # config / schema the recursive algorithm is currently working on.
+    # (Only) in the first call, these are identical.
+    my $config_section = shift;
+    my $schema_section = shift;
+    my $depth          = shift // 0;
 
-    for my $key (keys %{$config}){
+    for my $key (keys %{$config_section}){
         print ' ' x ($depth*4), $key;
 
         # checks
         my $key_schema_to_descend_into =
-            __key_present_in_schema($key, $config, $schema);
-        __value_is_valid($key, $config, $schema, $depth);
+            __key_present_in_schema($key, $config_section, $schema_section);
+        __value_is_valid($key, $config_section, $schema_section, $depth);
 
 
         # recursion
-        if (ref $config->{$key} eq ref {}){
+        if (ref $config_section->{$key} eq ref {}){
             _validate(
-                $config->{$key},
-                $schema->{$key_schema_to_descend_into}->{members},
+                $config_section->{$key},
+                $schema_section->{$key_schema_to_descend_into}->{members},
                 $depth+1
             );
         }
-
-        # TODO
     }
 
     # look for missing mandatory keys in schema
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
-    _check_mandatory_keys($config, $schema, $depth);
+    _check_mandatory_keys($config_section, $schema_section, $depth);
 
 }
 
@@ -120,14 +121,14 @@ sub _validate{
 # below current level (in schema)
 # for each check if $config has a key.
 sub _check_mandatory_keys{
-    my $config = shift;
-    my $schema = shift;
-    my $depth  = shift;
+    my $config_section = shift;
+    my $schema_section = shift;
+    my $depth          = shift;
 
-    for my $key (keys %{$schema}){
+    for my $key (keys %{$schema_section}){
         print ' 'x($depth*4), "Checking if $key is mandatory: ";
-        if (exists $schema->{$key}->{mandatory}
-               and $schema->{$key}->{mandatory}){
+        if (exists $schema_section->{$key}->{mandatory}
+               and $schema_section->{$key}->{mandatory}){
 
             say "true";
         }
