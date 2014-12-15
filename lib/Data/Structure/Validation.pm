@@ -6,6 +6,10 @@ use Carp;
 
 my $verbose;
 
+##################
+# (public) methods
+##################
+
 sub new{
     my $class  = shift;
     my $config = shift || croak '$config not supplied';
@@ -21,11 +25,65 @@ sub new{
     return $self;
 }
 
+# check if everything in config is in line with schema
+sub validate{
+    my $self = shift;
+    my %p    = @_;
+    $verbose = 1 if exists $p{verbose} and $p{verbose};
+
+    # start (recursive) validation with top level elements
+    _validate($self->{config}, $self->{schema});
+}
+
+
+#################
+# (internal) subs
+#################
+
+# this is not an object method because it is a helper sub for internal
+# use and not a method that describes an object.
 sub explain ($) {
     my $string = shift;
     print $string if $verbose;
 }
 
+
+# sub for recursive tree traversal
+sub _validate{
+    # $(word)_section are *not* the data fields but the sections of the
+    # config / schema the recursive algorithm is currently working on.
+    # (Only) in the first call, these are identical.
+    my $config_section = shift;
+    my $schema_section = shift;
+    my $depth          = shift // 0;
+
+    for my $key (keys %{$config_section}){
+        explain ' ' x ($depth*4), $key;
+
+        # checks
+        my $key_schema_to_descend_into =
+            __key_present_in_schema($key, $config_section, $schema_section);
+        __value_is_valid($key, $config_section, $schema_section, $depth);
+
+
+        # recursion
+        if (ref $config_section->{$key} eq ref {}){
+            _validate(
+                $config_section->{$key},
+                $schema_section->{$key_schema_to_descend_into}->{members},
+                $depth+1
+            );
+        }
+    }
+
+    # look for missing mandatory keys in schema
+    # this is only done on this level.
+    # Otherwise "mandatory" inherited "upwards".
+    _check_mandatory_keys($config_section, $schema_section, $depth);
+
+}
+
+# called by _validate to check if a given key is defined in schema
 sub __key_present_in_schema{
     my $key            = shift;
     my $config_section = shift;
@@ -66,6 +124,8 @@ sub __key_present_in_schema{
     return $key_schema_to_descend_into
 }
 
+# called by _validate to check if a value is in line with definitions
+# in the schema.
 sub __value_is_valid{
     my $key    = shift;
     my $config_section = shift;
@@ -92,40 +152,6 @@ sub __value_is_valid{
     }
 }
 
-# this being sub for recursive tree traversal
-sub _validate{
-    # $(word)_section are *not* the data fields but the sections of the
-    # config / schema the recursive algorithm is currently working on.
-    # (Only) in the first call, these are identical.
-    my $config_section = shift;
-    my $schema_section = shift;
-    my $depth          = shift // 0;
-
-    for my $key (keys %{$config_section}){
-        explain ' ' x ($depth*4), $key;
-
-        # checks
-        my $key_schema_to_descend_into =
-            __key_present_in_schema($key, $config_section, $schema_section);
-        __value_is_valid($key, $config_section, $schema_section, $depth);
-
-
-        # recursion
-        if (ref $config_section->{$key} eq ref {}){
-            _validate(
-                $config_section->{$key},
-                $schema_section->{$key_schema_to_descend_into}->{members},
-                $depth+1
-            );
-        }
-    }
-
-    # look for missing mandatory keys in schema
-    # this is only done on this level.
-    # Otherwise "mandatory" inherited "upwards".
-    _check_mandatory_keys($config_section, $schema_section, $depth);
-
-}
 
 # check mandatory: look for mandatory fields in all hashes 1 level
 # below current level (in schema)
@@ -149,19 +175,6 @@ sub _check_mandatory_keys{
     }
 }
 
-
-# TODO rename $config & $schema in subs.
-# These are only parts of the whole thing (first call excluded).
-
-# check if everything in config is in line with schema
-sub validate{
-    my $self = shift;
-    my %p    = @_;
-    $verbose = 1 if exists $p{verbose} and $p{verbose};
-
-    # start (recursive) validation with top level elements
-    _validate($self->{config}, $self->{schema});
-}
 
 =pod
 =head1 Validate a Perl Data Structure with a Schema
