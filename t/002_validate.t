@@ -75,7 +75,7 @@ isa_ok( $validator, Data::Structure::Validation, '$checker' );
 
 can_ok($validator, validate);
 
-$validator->validate();
+$validator->validate(verbose=>1);
 
 
 

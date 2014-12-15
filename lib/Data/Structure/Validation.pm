@@ -4,17 +4,26 @@ use warnings;
 package Data::Structure::Validation;
 use Carp;
 
+my $verbose;
+
 sub new{
-    my $class = shift;
+    my $class  = shift;
     my $config = shift || croak '$config not supplied';
     my $schema = shift || croak '$schema not supplied';
+    $verbose   = shift;
+
 
     my $self = {
-        config => $config,
-        schema => $schema,
+        config  => $config,
+        schema  => $schema,
     };
     bless ($self, $class);
     return $self;
+}
+
+sub explain ($) {
+    my $string = shift;
+    print $string if $verbose;
 }
 
 sub __key_present_in_schema{
@@ -26,7 +35,7 @@ sub __key_present_in_schema{
 
     # direct match: exact declaration
     if (exists $schema_section->{$key}){
-        say " ok";
+        explain " ok\n";
         $key_schema_to_descend_into = $key;
     }
     # match against a pattern
@@ -39,7 +48,7 @@ sub __key_present_in_schema{
             next unless $schema_section->{$match_key}->{regex};
 
             if ($key =~ /$match_key/){
-                say "$key matches $match_key";
+                explain "$key matches $match_key\n";
                 $key_schema_to_descend_into = $match_key;
 
             }
@@ -48,10 +57,10 @@ sub __key_present_in_schema{
     # XXX how much sense does it make to have mandatory regex enabled keys?
 
     unless ($key_schema_to_descend_into){
-        print " not there, keys available: ";
-        print "'$_' " for (keys %{$schema_section});
-        print "\n";
-        say "bailout";
+        explain " not there, keys available: ";
+        explain "'$_' " for (keys %{$schema_section});
+        explain "\n";
+        explain "bailout\n";
         exit;
     }
     return $key_schema_to_descend_into
@@ -64,7 +73,7 @@ sub __value_is_valid{
     my $depth          = shift;
 
     if (exists $schema_section->{$key}->{value}){
-        say ' 'x($depth*4), ref($schema_section->{$key}->{value});
+        explain ' 'x($depth*4). ref($schema_section->{$key}->{value}).'\n';
 
         # currently, 2 type of restrictions are supported:
         # (callback) code and regex
@@ -72,11 +81,12 @@ sub __value_is_valid{
             # XXX implement callback harness here (if needed)
         }
         elsif (ref($schema_section->{$key}->{value}) eq 'Regexp'){
-            say ' 'x($depth*4), "'$config_section->{$key}' should match '$schema_section->{$key}->{value}'";
-            say ' 'x($depth*4), "matches" if $config_section->{$key} =~ m/^$schema_section->{$key}->{value}$/;
+            explain ' 'x($depth*4). "'$config_section->{$key}' should match '$schema_section->{$key}->{value}'\n";
+            explain ' 'x($depth*4). "matches\n"
+                if $config_section->{$key} =~ m/^$schema_section->{$key}->{value}$/;
         }
         else{
-            say ' 'x($depth*4), "neither CODE nor Regexp";
+            explain ' 'x($depth*4), "neither CODE nor Regexp\n";
         }
 
     }
@@ -92,7 +102,7 @@ sub _validate{
     my $depth          = shift // 0;
 
     for my $key (keys %{$config_section}){
-        print ' ' x ($depth*4), $key;
+        explain ' ' x ($depth*4), $key;
 
         # checks
         my $key_schema_to_descend_into =
@@ -126,14 +136,14 @@ sub _check_mandatory_keys{
     my $depth          = shift;
 
     for my $key (keys %{$schema_section}){
-        print ' 'x($depth*4), "Checking if $key is mandatory: ";
+        explain ' 'x($depth*4). "Checking if $key is mandatory: ";
         if (exists $schema_section->{$key}->{mandatory}
                and $schema_section->{$key}->{mandatory}){
 
-            say "true";
+            explain "true\n";
         }
         else{
-            say "false";
+            explain "false\n";
         }
 
     }
@@ -146,6 +156,8 @@ sub _check_mandatory_keys{
 # check if everything in config is in line with schema
 sub validate{
     my $self = shift;
+    my %p    = @_;
+    $verbose = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
     _validate($self->{config}, $self->{schema});
