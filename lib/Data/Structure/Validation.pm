@@ -40,10 +40,19 @@ sub validate{
 # (internal) subs
 #################
 
+# XXX make this more informative:
+#   - where in the schema / config are we?
+#   - perhaps return an object with some methods for more information
+sub bailout ($) {
+    my $string = shift;
+    croak $string;
+}
+
 # this is not an object method because it is a helper sub for internal
 # use and not a method that describes an object.
 sub explain ($) {
     my $string = shift;
+    # XXX allow multiple verbosity levels
     print $string if $verbose;
 }
 
@@ -108,18 +117,19 @@ sub __key_present_in_schema{
             if ($key =~ /$match_key/){
                 explain "$key matches $match_key\n";
                 $key_schema_to_descend_into = $match_key;
-
             }
         }
     }
     # XXX how much sense does it make to have mandatory regex enabled keys?
 
+    # if $key_schema_to_descend_into is still undef we were unable to
+    # match it against a key in the schema. This is deadly.
     unless ($key_schema_to_descend_into){
         explain " not there, keys available: ";
         explain "'$_' " for (keys %{$schema_section});
         explain "\n";
         explain "bailout\n";
-        exit;
+        bailout "key $key not found in schema";
     }
     return $key_schema_to_descend_into
 }
@@ -133,7 +143,7 @@ sub __value_is_valid{
     my $depth          = shift;
 
     if (exists $schema_section->{$key}->{value}){
-        explain ' 'x($depth*4). ref($schema_section->{$key}->{value}).'\n';
+        explain ' 'x($depth*4). ref($schema_section->{$key}->{value})."\n";
 
         # currently, 2 type of restrictions are supported:
         # (callback) code and regex
@@ -147,6 +157,7 @@ sub __value_is_valid{
         }
         else{
             explain ' 'x($depth*4), "neither CODE nor Regexp\n";
+            bailout "$key not CODE or Regexp";
         }
 
     }
