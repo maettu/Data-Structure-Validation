@@ -10,15 +10,15 @@ my $verbose;
 # (public) methods
 ##################
 
+# TODO: new only with $schema, $config only at validate();
+
 sub new{
     my $class  = shift;
-    my $config = shift || croak '$config not supplied';
     my $schema = shift || croak '$schema not supplied';
     $verbose   = shift;
 
 
     my $self = {
-        config  => $config,
         schema  => $schema,
     };
     bless ($self, $class);
@@ -27,12 +27,13 @@ sub new{
 
 # check if everything in config is in line with schema
 sub validate{
-    my $self = shift;
+    my $self   = shift;
+    my $config = shift || croak '$config not supplied';
     my %p    = @_;
     $verbose = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
-    _validate($self->{config}, $self->{schema}, 0, 'root');
+    _validate($config, $self->{schema}, 0, 'root');
 }
 
 
@@ -41,8 +42,8 @@ sub validate{
 #################
 
 # XXX make this more informative:
-#   - where in the schema / config are we?
 #   - perhaps return an object with some methods for more information
+# XXX bailout without "@parent_keys"
 sub bailout ($@) {
     my $string = shift;
     my @parent_keys = @_;
@@ -176,6 +177,8 @@ sub __value_is_valid{
             }
         }
         else{
+            # XXX match literally? How much sense does this make?!
+
             explain ' 'x($depth*4), "neither CODE nor Regexp\n";
             bailout "$key not CODE or Regexp", @parent_keys;
         }

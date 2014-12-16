@@ -50,18 +50,25 @@ my $schema = {
                             url => {
                                 mandatory   => 1,
                                 value       => qr{https.*},
+                                example     => 'https://silo-a/api',
                                 description => 'url of the silo server. Only https:// allowed',
                             },
                             key => {
                                 mandatory   => 1,
                                 description => 'shared secret to identify node'
-                            }
+                            },
+#~                             whatnot => {
+#~                                 mandatory => 1,
+#~                             }
                         }
                     }
                 }
             }
         }
-    }
+    },
+#~     NOT_THERE => {
+#~         mandatory => 1
+#~     }
 };
 
 eval {Data::Structure::Validation->new(undef)};
@@ -70,12 +77,12 @@ ok ($@, '$config not supplied');
 eval {Data::Structure::Validation->($config, undef)};
 ok ($@, '$schema not supplied');
 
-my $validator = Data::Structure::Validation->new($config, $schema);
+my $validator = Data::Structure::Validation->new($schema);
 isa_ok( $validator, Data::Structure::Validation, '$checker' );
 
 can_ok($validator, validate);
 
-$validator->validate(verbose=>1);
+$validator->validate($config, verbose=>1);
 
 
 
