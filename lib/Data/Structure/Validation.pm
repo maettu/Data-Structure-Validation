@@ -32,7 +32,7 @@ sub validate{
     $verbose = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
-    _validate($self->{config}, $self->{schema});
+    _validate($self->{config}, $self->{schema}, 0, 'root');
 }
 
 
@@ -43,9 +43,11 @@ sub validate{
 # XXX make this more informative:
 #   - where in the schema / config are we?
 #   - perhaps return an object with some methods for more information
-sub bailout ($) {
+sub bailout ($@) {
     my $string = shift;
-    croak $string;
+    my @parent_keys = @_;
+    my $msg_parent_keys = join '->', @parent_keys;
+    croak $string. ' (Path to offending value: '.$msg_parent_keys.')';
 }
 
 # this is not an object method because it is a helper sub for internal
@@ -65,6 +67,7 @@ sub _validate{
     my $config_section = shift;
     my $schema_section = shift;
     my $depth          = shift // 0;
+    my @parent_keys    = @_;
 
     for my $key (keys %{$config_section}){
         explain ' ' x ($depth*4), $key;
@@ -77,10 +80,12 @@ sub _validate{
 
         # recursion
         if (ref $config_section->{$key} eq ref {}){
+            push @parent_keys, $key;
             _validate(
                 $config_section->{$key},
                 $schema_section->{$key_schema_to_descend_into}->{members},
-                $depth+1
+                $depth+1,
+                @parent_keys
             );
         }
     }
@@ -88,7 +93,7 @@ sub _validate{
     # look for missing mandatory keys in schema
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
-    _check_mandatory_keys($config_section, $schema_section, $depth);
+    _check_mandatory_keys($config_section, $schema_section, $depth, @parent_keys);
 
 }
 
@@ -171,6 +176,7 @@ sub _check_mandatory_keys{
     my $config_section = shift;
     my $schema_section = shift;
     my $depth          = shift;
+    my @parent_keys    = @_;
 
     for my $key (keys %{$schema_section}){
         explain ' 'x($depth*4). "Checking if $key is mandatory: ";
@@ -178,11 +184,12 @@ sub _check_mandatory_keys{
                and $schema_section->{$key}->{mandatory}){
 
             explain "true\n";
+            bailout "mandatory key '$key' missing", @parent_keys
+                unless exists $config_section->{$key};
         }
         else{
             explain "false\n";
         }
-
     }
 }
 
