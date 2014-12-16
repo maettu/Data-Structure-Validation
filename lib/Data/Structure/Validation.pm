@@ -74,8 +74,13 @@ sub _validate{
 
         # checks
         my $key_schema_to_descend_into =
-            __key_present_in_schema($key, $config_section, $schema_section);
-        __value_is_valid($key, $config_section, $schema_section, $depth);
+            __key_present_in_schema(
+                $key, $config_section, $schema_section, @parent_keys
+            );
+
+        __value_is_valid(
+            $key, $config_section, $schema_section, $depth, @parent_keys
+        );
 
 
         # recursion
@@ -93,7 +98,9 @@ sub _validate{
     # look for missing mandatory keys in schema
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
-    _check_mandatory_keys($config_section, $schema_section, $depth, @parent_keys);
+    _check_mandatory_keys(
+        $config_section, $schema_section, $depth, @parent_keys
+    );
 
 }
 
@@ -102,6 +109,7 @@ sub __key_present_in_schema{
     my $key            = shift;
     my $config_section = shift;
     my $schema_section = shift;
+    my @parent_keys    = @_;
 
     my $key_schema_to_descend_into;
 
@@ -134,7 +142,7 @@ sub __key_present_in_schema{
         explain "'$_' " for (keys %{$schema_section});
         explain "\n";
         explain "bailout\n";
-        bailout "key $key not found in schema";
+        bailout "key $key not found in schema", @parent_keys;
     }
     return $key_schema_to_descend_into
 }
@@ -146,6 +154,7 @@ sub __value_is_valid{
     my $config_section = shift;
     my $schema_section = shift;
     my $depth          = shift;
+    my @parent_keys    = @_;
 
     if (exists $schema_section->{$key}->{value}){
         explain ' 'x($depth*4). ref($schema_section->{$key}->{value})."\n";
@@ -156,13 +165,19 @@ sub __value_is_valid{
             # XXX implement callback harness here (if needed)
         }
         elsif (ref($schema_section->{$key}->{value}) eq 'Regexp'){
-            explain ' 'x($depth*4). "'$config_section->{$key}' should match '$schema_section->{$key}->{value}'\n";
-            explain ' 'x($depth*4). "matches\n"
-                if $config_section->{$key} =~ m/^$schema_section->{$key}->{value}$/;
+            explain ' 'x($depth*4). "match '$config_section->{$key}' against '$schema_section->{$key}->{value}'";
+
+            if ($config_section->{$key} =~ m/^$schema_section->{$key}->{value}$/){
+                explain " ok.\n"
+            }
+            else{
+                explain " no.\n";
+                bailout "$config_section->{$key} does not match ^$schema_section->{$key}->{value}\$", @parent_keys;
+            }
         }
         else{
             explain ' 'x($depth*4), "neither CODE nor Regexp\n";
-            bailout "$key not CODE or Regexp";
+            bailout "$key not CODE or Regexp", @parent_keys;
         }
 
     }
