@@ -48,7 +48,7 @@ sub bailout ($@) {
     my $string = shift;
     my @parent_keys = @_;
     my $msg_parent_keys = join '->', @parent_keys;
-    croak $string. ' (Path to offending value: '.$msg_parent_keys.')';
+    croak $string. ' (Path: '.$msg_parent_keys.')';
 }
 
 # this is not an object method because it is a helper sub for internal
@@ -71,7 +71,7 @@ sub _validate{
     my @parent_keys    = @_;
 
     for my $key (keys %{$config_section}){
-        explain ' ' x ($depth*4), $key;
+        explain ' ' x ($depth*4). $key;
 
         # checks
         my $key_schema_to_descend_into =
@@ -83,6 +83,11 @@ sub _validate{
             $key, $config_section, $schema_section, $depth, @parent_keys
         );
 
+        __validator_returns_undef(
+            $key, $config_section, $schema_section, $depth, @parent_keys
+        ) if exists $schema_section->{$key}->{validator};
+
+
 
         # recursion
         if (ref $config_section->{$key} eq ref {}){
@@ -93,6 +98,8 @@ sub _validate{
                 $depth+1,
                 @parent_keys
             );
+            # to undo push before entering recursion.
+            pop @parent_keys;
         }
     }
 
@@ -104,6 +111,8 @@ sub _validate{
     );
 
 }
+
+
 
 # called by _validate to check if a given key is defined in schema
 sub __key_present_in_schema{
@@ -164,6 +173,7 @@ sub __value_is_valid{
         # (callback) code and regex
         if (ref($schema_section->{$key}->{value}) eq 'CODE'){
             # XXX implement callback harness here (if needed)
+            # possibly never implement this because of new "validator"
         }
         elsif (ref($schema_section->{$key}->{value}) eq 'Regexp'){
             explain ' 'x($depth*4). "match '$config_section->{$key}' against '$schema_section->{$key}->{value}'";
@@ -179,13 +189,21 @@ sub __value_is_valid{
         else{
             # XXX match literally? How much sense does this make?!
 
-            explain ' 'x($depth*4), "neither CODE nor Regexp\n";
+            explain ' 'x($depth*4). "neither CODE nor Regexp\n";
             bailout "$key not CODE or Regexp", @parent_keys;
         }
 
     }
 }
 
+sub __validator_returns_undef {
+my $key    = shift;
+    my $config_section = shift;
+    my $schema_section = shift;
+    my $depth          = shift;
+    my @parent_keys    = @_;
+    explain ' 'x($depth*4). "running validator for $key";
+}
 
 # check mandatory: look for mandatory fields in all hashes 1 level
 # below current level (in schema)
