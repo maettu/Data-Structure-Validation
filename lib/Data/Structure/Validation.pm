@@ -5,6 +5,7 @@ package Data::Structure::Validation;
 use Carp;
 
 my $verbose;
+my @errors;      # this will be collecting all errors
 
 ##################
 # (public) methods
@@ -34,6 +35,7 @@ sub validate{
 
     # start (recursive) validation with top level elements
     _validate($config, $self->{schema}, 0, 'root');
+    return @errors;
 }
 
 
@@ -48,7 +50,9 @@ sub bailout ($@) {
     my $string = shift;
     my @parent_keys = @_;
     my $msg_parent_keys = join '->', @parent_keys;
-    croak $string. ' (Path: '.$msg_parent_keys.')';
+#~     croak $string. ' (Path: '.$msg_parent_keys.')';
+    push @errors, "$string. ' (Path: '.$msg_parent_keys.')'";
+
 }
 
 # this is not an object method because it is a helper sub for internal
@@ -202,7 +206,15 @@ my $key    = shift;
     my $schema_section = shift;
     my $depth          = shift;
     my @parent_keys    = @_;
-    explain ' 'x($depth*4). "running validator for $key";
+    explain ' 'x($depth*4). "running validator for $key\n";
+    my $return_value = $schema_section->{$key}->{validator}->();
+    if ($return_value){
+        explain ' 'x($depth*4)."validator error: $return_value\n";
+        bailout "Execution of validator for $key returns with error: $return_value", @parent_keys;
+    }
+    else {
+        explain ' 'x($depth*4). "successful validation for key $key\n";
+    }
 }
 
 # check mandatory: look for mandatory fields in all hashes 1 level
