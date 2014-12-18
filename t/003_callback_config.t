@@ -53,31 +53,31 @@ my $config = {
         "lower-limit" => 0,
         "title" => "<% \$host %> - <% \$ds %>"
       },
-#~       "datasource" => {
-#~         "maximum" => "U",
-#~         "minimum" => 0,
-#~         "probe" => "SnmpGetBulk",
-#~         "probe_cfg" => {
-#~           "community" => "public",
-#~           "host" => "runip123",
-#~           "oids" => {
-#~             "1.3.6.1.2.1.2.2.1.10" => "inOctets",
-#~             "1.3.6.1.2.1.2.2.1.16" => "outOctets"
-#~           },
-#~           "version" => "2c"
-#~         },
-#~         "step" => 2,
-#~         "type" => "DERIVE"
-#~       }
+      "datasource" => {
+        "maximum" => "U",
+        "minimum" => 0,
+        "probe" => "SnmpGetBulk",
+        "probe_cfg" => {
+          "community" => "public",
+          "host" => "runip123",
+          "oids" => {
+            "1.3.6.1.2.1.2.2.1.10" => "inOctets",
+            "1.3.6.1.2.1.2.2.1.16" => "outOctets"
+          },
+          "version" => "2c"
+        },
+        "step" => 2,
+        "type" => "DERIVE"
+      }
     }
   },
   "GENERAL" => {
     "cachedb" => "/tmp/n3k-cache.db",
-#~     "default_template" => [
-#~       "snmpgetlocal",
-#~       "oneyear",
-#~       "simplegraph"
-#~     ],
+    "default_template" => [
+      "snmpgetlocal",
+      "oneyear",
+      "simplegraph"
+    ],
     "history" => 3600,
     "logfile" => "/tmp/n3k-harvester.log",
     "silos" => {
@@ -145,14 +145,14 @@ my $validator = {
         }
     },
     any => sub {
-        my $array = shift;
+        my $array = [@_];
         my %hash = ( map { $_ => 1 } @$array );
         sub {
             my $value = shift;
             if ($hash{$value}){
                 return undef;
             }
-            return "expected one value from the list: ".join(', ',@$array);
+            return "expected value '$value' not in list of expected values: " . join(', ',@$array);
         }
     },
 };
@@ -314,12 +314,12 @@ my $schema =   {
                         members => {
                             "chart" => {
                                 description => 'rrdtool graph instructions',
-#~                                 validator   => sub {
-#~                                     if ( ref $_[0] eq 'ARRAY' ){
-#~                                         return undef;
-#~                                     }
-#~                                     return "Expected an array";
-#~                                 }
+                                validator   => sub {
+                                    if ( ref $_[0] eq 'ARRAY' ){
+                                        return undef;
+                                    }
+                                    return "Expected an array";
+                                },
                                 validator => sub {return undef;}
                             },
                             '.+' => {
@@ -337,7 +337,7 @@ my $schema =   {
 my $validator = Data::Structure::Validation->new($schema);
 isa_ok( $validator, Data::Structure::Validation, '$checker' );
 
-my @errors = $validator->validate($config, verbose=>1);
+my @errors = $validator->validate($config, verbose=>0);
 
 for my $error (@errors){
     print "$error\n";

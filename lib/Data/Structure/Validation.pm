@@ -203,8 +203,9 @@ my $key    = shift;
     my $schema_section = shift;
     my $depth          = shift;
     my @parent_keys    = @_;
-    explain ' 'x($depth*4). "running validator for $key\n";
-    my $return_value = $schema_section->{$key}->{validator}->();
+    explain ' 'x($depth*4). "running validator for $key: $config_section->{$key}\n";
+#~     print ' 'x($depth*4). "running validator for $key\n";
+    my $return_value = $schema_section->{$key}->{validator}->($config_section->{$key});
     if ($return_value){
         explain ' 'x($depth*4)."validator error: $return_value\n";
         bailout "Execution of validator for $key returns with error: $return_value", @parent_keys;
