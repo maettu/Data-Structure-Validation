@@ -46,7 +46,7 @@ sub bailout ($@) {
     my $string = shift;
     my @parent_keys = @_;
     my $msg_parent_keys = join '->', @parent_keys;
-    push @errors, "$string. ' (Path: '.$msg_parent_keys.')'";
+    push @errors, "$string (Path: $msg_parent_keys)";
 
 }
 

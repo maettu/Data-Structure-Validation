@@ -57,18 +57,18 @@ my $schema = {
                                 mandatory   => 1,
                                 description => 'shared secret to identify node'
                             },
-#~                             whatnot => {
-#~                                 mandatory => 1,
-#~                             }
+                            not_existing => {
+                                mandatory => 1,
+                            }
                         }
                     }
                 }
             }
         }
     },
-#~     NOT_THERE => {
-#~         mandatory => 1
-#~     }
+    NOT_THERE => {
+        mandatory => 1
+    }
 };
 
 eval {Data::Structure::Validation->new(undef)};
@@ -82,8 +82,22 @@ isa_ok( $validator, Data::Structure::Validation, '$checker' );
 
 can_ok($validator, validate);
 
-$validator->validate($config, verbose=>1);
+my @errors = $validator->validate($config, verbose=>0);
 
+ok (scalar(@errors)==2, '2 errors found');
+
+sub _any_error_contains {
+    my $string = shift;
+    for my $error (@errors){
+        return 1 if $error =~ /$string/;
+    }
+    return undef;
+}
+
+ok (_any_error_contains("not_existing"), "mandatory schema key 'not_existing' not in config");
+ok (_any_error_contains("NOT_THERE"), "mandatory schema section 'NOT_THERE' not found in config");
+ok (_any_error_contains("silo-a"), "missing value from 'silo-a'");
+ok (_any_error_contains("Path: root"), "section missing from 'root'");
 
 
 done_testing();
