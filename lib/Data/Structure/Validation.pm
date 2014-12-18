@@ -11,8 +11,6 @@ my @errors;      # this will be collecting all errors
 # (public) methods
 ##################
 
-# TODO: new only with $schema, $config only at validate();
-
 sub new{
     my $class  = shift;
     my $schema = shift || croak '$schema not supplied';
@@ -43,14 +41,11 @@ sub validate{
 # (internal) subs
 #################
 
-# XXX make this more informative:
-#   - perhaps return an object with some methods for more information
 # XXX bailout without "@parent_keys"
 sub bailout ($@) {
     my $string = shift;
     my @parent_keys = @_;
     my $msg_parent_keys = join '->', @parent_keys;
-#~     croak $string. ' (Path: '.$msg_parent_keys.')';
     push @errors, "$string. ' (Path: '.$msg_parent_keys.')'";
 
 }
@@ -59,7 +54,7 @@ sub bailout ($@) {
 # use and not a method that describes an object.
 sub explain ($) {
     my $string = shift;
-    # XXX allow multiple verbosity levels
+    # XXX enable multiple verbosity levels
     print $string if $verbose;
 }
 
