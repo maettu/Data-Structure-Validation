@@ -46,7 +46,9 @@ sub bailout ($@) {
     my $string = shift;
     my @parent_keys = @_;
     my $msg_parent_keys = join '->', @parent_keys;
-    push @errors, "$string (Path: $msg_parent_keys)";
+    my (undef, undef, $line) = caller(0);
+    my (undef, undef, undef, $sub) = caller(1);
+    push @errors, "$string (Path: $msg_parent_keys) caller: $sub line $line";
 
 }
 
