@@ -82,7 +82,7 @@ isa_ok( $validator, Data::Structure::Validation, '$checker' );
 
 can_ok($validator, validate);
 
-my @errors = $validator->validate($config, verbose=>1);
+my @errors = $validator->validate($config, verbose=>0);
 
 ok (scalar(@errors)==2, '2 errors found');
 
@@ -99,29 +99,27 @@ ok (_any_error_contains("NOT_THERE"), "mandatory schema section 'NOT_THERE' not 
 ok (_any_error_contains("silo-a"), "missing value from 'silo-a'");
 ok (_any_error_contains("Path: root"), "section missing from 'root'");
 
-@errors = $validator->validate($config, verbose=>1);
+@errors = $validator->validate($config, verbose=>0);
 
-#~ $config = {
-#~     GENERAL => {
-#~         logfile => '/tmp/n3k-poller.log',
-#~         cachedb => '/tmp/n3k-cache.db',
-#~         history => '3d',
-#~         silos   => {
-#~             'silo-a' => {
-#~                 url => 'https://silo-a/api',
-#~                 key => 'my-secret-shared-key',
-#~                 not_existing => 'make go away my error!',
-#~             }
-#~         }
-#~
-#~     },
-#~     NOT_THERE => 'whatnot'
-#~ };
-#~
-#~ @errors = $validator->validate($config, verbose=>0);
-#~ ok (@errors == (), 'no more errors with corrected config');
-#~
-use Data::Dumper; print Dumper \@errors;
+$config = {
+    GENERAL => {
+        logfile => '/tmp/n3k-poller.log',
+        cachedb => '/tmp/n3k-cache.db',
+        history => '3d',
+        silos   => {
+            'silo-a' => {
+                url => 'https://silo-a/api',
+                key => 'my-secret-shared-key',
+                not_existing => 'make go away my error!',
+            }
+        }
+    },
+    NOT_THERE => 'whatnot'
+};
+
+@errors = $validator->validate($config, verbose=>0);
+ok (@errors == (), 'no more errors with corrected config');
+
 
 done_testing();
 

@@ -88,7 +88,6 @@ sub _validate{
 
     for my $key (keys %{$config_section}){
         explain ' ' x ($depth*4). "'$key'";
-
         # checks
         my $key_schema_to_descend_into =
             __key_present_in_schema(
@@ -101,10 +100,12 @@ sub _validate{
 
         __validator_returns_undef(
             $key, $config_section, $schema_section, $depth, @parent_keys
-        ) if exists $schema_section->{$key}->{validator};
+        ) if exists $schema_section->{$key}
+             and exists $schema_section->{$key}->{validator};
 
         my $descend_into;
-        if (exists $schema_section->{$key}->{no_descend_into}
+        if (exists  $schema_section->{$key}
+                and $schema_section->{$key}->{no_descend_into}
                 and $schema_section->{$key}->{no_descend_into}){
             explain "skipping $key\n";
         }
@@ -112,6 +113,7 @@ sub _validate{
             $descend_into = 1;
         }
 
+        die "haha!" if exists $schema_section->{'silo-a'};
 
         # recursion
         if ((ref $config_section->{$key} eq ref {})
@@ -160,7 +162,9 @@ sub __key_present_in_schema{
 
             # only try to match a key if it has the property
             # _regex_ set
-            next unless $schema_section->{$match_key}->{regex};
+            next unless exists $schema_section->{$match_key}
+                    and exists $schema_section->{$match_key}->{regex}
+                           and $schema_section->{$match_key}->{regex};
 
             if ($key =~ /$match_key/){
                 explain "'$key' matches $match_key\n";
@@ -190,7 +194,8 @@ sub __value_is_valid{
     my $depth          = shift;
     my @parent_keys    = @_;
 
-    if (exists $schema_section->{$key}->{value}){
+    if (exists  $schema_section->{$key}
+            and $schema_section->{$key}->{value}){
         explain ' 'x($depth*4). ref($schema_section->{$key}->{value})."\n";
 
         # currently, 2 type of restrictions are supported:
@@ -227,7 +232,6 @@ my $key    = shift;
     my $depth          = shift;
     my @parent_keys    = @_;
     explain ' 'x($depth*4). "running validator for '$key': $config_section->{$key}\n";
-#~     print ' 'x($depth*4). "running validator for $key\n";
     my $return_value = $schema_section->{$key}->{validator}->($config_section->{$key});
     if ($return_value){
         explain ' 'x($depth*4)."validator error: $return_value\n";
