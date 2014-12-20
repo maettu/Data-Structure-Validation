@@ -28,7 +28,8 @@ sub new{
 sub validate{
     my $self   = shift;
     my $config = shift || croak '$config not supplied';
-    my %p    = @_;
+    my %p      = @_;
+    _reset_globals();
     $verbose = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
@@ -36,10 +37,24 @@ sub validate{
     return @errors;
 }
 
+sub make_config_template{
+    my $self = shift;
+    my %p    = @_;
+    _reset_globals();
+    $verbose = 1 if exists $p{verbose} and $p{verbose};
+
+
+}
+
 
 #################
 # (internal) subs
 #################
+
+sub _reset_globals{
+    $verbose = undef;
+    @errors  = ();
+}
 
 # XXX bailout without "@parent_keys"
 sub bailout ($@) {
