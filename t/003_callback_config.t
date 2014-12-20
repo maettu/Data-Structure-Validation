@@ -1,14 +1,88 @@
 #!/usr/bin/perl
 use Test::More;
 
-# XXX remove dependency by transforming config.json
-#~ use Mojo::JSON qw(decode_json);
-#~
-#~ print `pwd`;
-#~ open my $fh, '<', 't/config.json' or die $!;
-#~ my $c;
-#~ $c .= $_ while (<$fh>);
-#~ my $config = decode_json($c);
+use lib 'lib';
+use Data::Structure::Validation;
+
+
+sub probeInventory {
+    my $self   = shift;
+    my $probePath = $self->probePath;
+    my %probes;
+    for my $path (@INC){
+        for my $pPath (@$probePath) {
+            my @pDirs = split /::/, $pPath;
+            my $fPath = File::Spec->catdir($path, @pDirs, '*.pm');
+            for my $file (glob($fPath)) {
+                my ($volume, $modulePath, $moduleName) = File::Spec->splitpath($file);
+                $moduleName =~ s{\.pm$}{};
+                $probes{$moduleName} = {
+                    module => $pPath.'::'.$moduleName,
+                    file => $file
+                }
+            }
+        }
+    }
+    return \%probes;
+};
+
+
+my $validator = {
+    file => sub {
+        my $op = shift;
+        my $msg = shift;
+        # XXX in welchem Kontext wird das ausgeführt?
+        sub {
+            my $file = shift;
+            # XXX return undef, und was ist mit dem offenen $fh, das wird gleich wieder geschlossen?
+            open my $fh, $op, $file and return undef;
+            return "$msg $file: $!";
+        }
+    },
+    rx => sub {
+        my $rx = shift;
+        my $msg = shift;
+        sub {
+            my $value = shift;
+            if ($value =~ /^$rx$/){
+                return undef;
+            }
+            return "$msg ($value)";
+        }
+    },
+    any => sub {
+        my $array = [@_];
+        my %hash = ( map { $_ => 1 } @$array );
+        sub {
+            my $value = shift;
+            if ($hash{$value}){
+                return undef;
+            }
+            return "expected value '$value' not in list of expected values: " . join(', ',@$array);
+        }
+    },
+};
+
+
+my $timespecfactor = {
+    d => 24*3600,
+    m => 60,
+    s => 1,
+    h => 3600
+};
+
+
+my $transformer = {
+    timespec => sub {
+        my $msg = shift;
+        sub {
+            if (shift =~ /(\d+)([dmsh]?)/){
+                return ($1 * $timespecfactor->{($2 || 's')});
+            }
+            die $msg;
+        }
+    }
+};
 
 my $config = {
   "DATA" => {
@@ -93,93 +167,6 @@ my $config = {
   }
 };
 
-
-use lib 'lib';
-use Data::Structure::Validation;
-
-
-sub probeInventory {
-    my $self   = shift;
-    my $probePath = $self->probePath;
-    my %probes;
-    for my $path (@INC){
-        for my $pPath (@$probePath) {
-            my @pDirs = split /::/, $pPath;
-            my $fPath = File::Spec->catdir($path, @pDirs, '*.pm');
-            for my $file (glob($fPath)) {
-                my ($volume, $modulePath, $moduleName) = File::Spec->splitpath($file);
-                $moduleName =~ s{\.pm$}{};
-                $probes{$moduleName} = {
-                    module => $pPath.'::'.$moduleName,
-                    file => $file
-                }
-            }
-        }
-    }
-    return \%probes;
-};
-
-
-my $validator = {
-    file => sub {
-        my $op = shift;
-        my $msg = shift;
-        print "op: $op, msg: $msg";
-        # XXX in welchem Kontext wird das ausgeführt?
-        sub {
-            my $file = shift;
-            # XXX return undef, und was ist mit dem offenen $fh, das wird gleich wieder geschlossen?
-            open my $fh, $op, $file and return undef;
-            return "$msg $file: $!";
-        }
-    },
-    rx => sub {
-        my $rx = shift;
-        my $msg = shift;
-        sub {
-            my $value = shift;
-            if ($value =~ /^$rx$/){
-                return undef;
-            }
-            return "$msg ($value)";
-        }
-    },
-    any => sub {
-        my $array = [@_];
-        my %hash = ( map { $_ => 1 } @$array );
-        sub {
-            my $value = shift;
-            if ($hash{$value}){
-                return undef;
-            }
-            return "expected value '$value' not in list of expected values: " . join(', ',@$array);
-        }
-    },
-};
-
-
-my $timespecfactor = {
-    d => 24*3600,
-    m => 60,
-    s => 1,
-    h => 3600
-};
-
-
-my $transformer = {
-    timespec => sub {
-        my $msg = shift;
-        sub {
-            if (shift =~ /(\d+)([dmsh]?)/){
-                return ($1 * $timespecfactor->{($2 || 's')});
-            }
-            die $msg;
-        }
-    }
-};
-
-
-
 my $schema =   {
     GENERAL => {
         mandatory   => 1,
@@ -194,6 +181,9 @@ my $schema =   {
                 validator   => $validator->{file}('>>','writing'),
                 description => 'absolute path to cache (sqlite) database file',
                 mandatory   => 1,
+            },
+            default_template => {
+                # saying something about a member is optional
             },
             history => {
                 default     => '1d',
@@ -247,15 +237,16 @@ my $schema =   {
                             },
                             minimum => {
                                 mandatory   => 1,
-                                description => 'maximum acceptable input value',
+                                description => 'minimum acceptable input value',
                             },
                             maximum => {
                                 mandatory   => 1,
-                                description => 'minimum acceptable input value',
+                                description => 'maximum acceptable input value',
                             },
                             probe_cfg => {
-                                mandatory   => 1,
-                                description => 'dummy entry. this will be replaces once the probe is loaded',
+                                mandatory       => 1,
+                                description     => 'dummy entry. this will be replaced once the probe is loaded',
+                                no_descend_into => 1,
                             },
                             probe => {
                                 mandatory   => 1,
@@ -268,10 +259,8 @@ my $schema =   {
                                     };
                                 },
                                 schema_gen => sub {
-                                    # XXX $data?
                                     my $data   = shift;
                                     my $schema = shift; # schema parent section
-                                    # XXX whatsthat?
                                     $schema->{probe_cfg} = $data->{probe}{obj}->schema;
                                     return $schema;
                                 },

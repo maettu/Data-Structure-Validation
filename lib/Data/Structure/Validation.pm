@@ -72,7 +72,7 @@ sub _validate{
     my @parent_keys    = @_;
 
     for my $key (keys %{$config_section}){
-        explain ' ' x ($depth*4). $key;
+        explain ' ' x ($depth*4). "'$key'";
 
         # checks
         my $key_schema_to_descend_into =
@@ -88,10 +88,19 @@ sub _validate{
             $key, $config_section, $schema_section, $depth, @parent_keys
         ) if exists $schema_section->{$key}->{validator};
 
+        my $descend_into;
+        if (exists $schema_section->{$key}->{no_descend_into}
+                and $schema_section->{$key}->{no_descend_into}){
+            explain "skipping $key\n";
+        }
+        else{
+            $descend_into = 1;
+        }
 
 
         # recursion
-        if (ref $config_section->{$key} eq ref {}){
+        if ((ref $config_section->{$key} eq ref {})
+                and $descend_into){
             push @parent_keys, $key;
             _validate(
                 $config_section->{$key},
@@ -139,7 +148,7 @@ sub __key_present_in_schema{
             next unless $schema_section->{$match_key}->{regex};
 
             if ($key =~ /$match_key/){
-                explain "$key matches $match_key\n";
+                explain "'$key' matches $match_key\n";
                 $key_schema_to_descend_into = $match_key;
             }
         }
@@ -147,13 +156,12 @@ sub __key_present_in_schema{
     # XXX how much sense does it make to have mandatory regex enabled keys?
 
     # if $key_schema_to_descend_into is still undef we were unable to
-    # match it against a key in the schema. This is deadly.
+    # match it against a key in the schema.
     unless ($key_schema_to_descend_into){
-        explain " not there, keys available: ";
+        explain "$key not in schema, keys available: ";
         explain "'$_' " for (keys %{$schema_section});
         explain "\n";
-        explain "bailout\n";
-        bailout "key $key not found in schema", @parent_keys;
+        bailout "key '$key' not found in schema\n", @parent_keys;
     }
     return $key_schema_to_descend_into
 }
@@ -191,7 +199,7 @@ sub __value_is_valid{
             # XXX match literally? How much sense does this make?!
 
             explain ' 'x($depth*4). "neither CODE nor Regexp\n";
-            bailout "$key not CODE or Regexp", @parent_keys;
+            bailout "'$key' not CODE or Regexp", @parent_keys;
         }
 
     }
@@ -203,15 +211,15 @@ my $key    = shift;
     my $schema_section = shift;
     my $depth          = shift;
     my @parent_keys    = @_;
-    explain ' 'x($depth*4). "running validator for $key: $config_section->{$key}\n";
+    explain ' 'x($depth*4). "running validator for '$key': $config_section->{$key}\n";
 #~     print ' 'x($depth*4). "running validator for $key\n";
     my $return_value = $schema_section->{$key}->{validator}->($config_section->{$key});
     if ($return_value){
         explain ' 'x($depth*4)."validator error: $return_value\n";
-        bailout "Execution of validator for $key returns with error: $return_value", @parent_keys;
+        bailout "Execution of validator for '$key' returns with error: $return_value", @parent_keys;
     }
     else {
-        explain ' 'x($depth*4). "successful validation for key $key\n";
+        explain ' 'x($depth*4). "successful validation for key '$key'\n";
     }
 }
 
@@ -225,7 +233,7 @@ sub _check_mandatory_keys{
     my @parent_keys    = @_;
 
     for my $key (keys %{$schema_section}){
-        explain ' 'x($depth*4). "Checking if $key is mandatory: ";
+        explain ' 'x($depth*4). "Checking if '$key' is mandatory: ";
         if (exists $schema_section->{$key}->{mandatory}
                and $schema_section->{$key}->{mandatory}){
 
