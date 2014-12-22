@@ -43,8 +43,8 @@ sub make_config_template{
     my %p    = @_;
     _reset_globals();
     $verbose = 1 if exists $p{verbose} and $p{verbose};
-    my $entry_point = $p{entry_point} // 'root';
-    my $config = _make_config_template($self->{schema}, $entry_point, 0);
+    my $config = _make_config_template($self->{schema},0);
+
     return $config;
 }
 
@@ -80,10 +80,7 @@ sub explain ($) {
 # make template: recursive tree traversal
 sub _make_config_template{
     my $schema_section = shift;
-    my $entry_point    = shift;
     my $depth          = shift;
-    # as soon as entry_point was found, config is recorded
-    my $record_flag    = shift;
 
     my $config = {};
 
@@ -97,9 +94,7 @@ sub _make_config_template{
                 $depth_add = 0;
                 return _make_config_template(
                     $schema_section->{$key},
-                    $entry_point,
                     $depth+$depth_add,
-                    $record_flag
                 );
             }
             else{
@@ -113,17 +108,16 @@ sub _make_config_template{
 
                 if (exists $schema_section->{$key}->{value}){
                     explain " $schema_section->{$key}->{value}";
-                    $config->{$key} .= ' '.$schema_section->{$key}->{value};
+                    $config->{$key} .= $schema_section->{$key}->{value};
                 }
                 explain "\n";
 
                 if (! exists  $schema_section->{$key}->{value}){
                     $config->{$key} = _make_config_template(
                         $schema_section->{$key},
-                        $entry_point,
                         $depth+$depth_add,
-                        $record_flag,
                     );
+
                 }
             }
 

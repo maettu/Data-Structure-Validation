@@ -121,11 +121,12 @@ $config = {
 ok (@errors == (), 'no more errors with corrected config');
 
 
-my $config_template = $validator->make_config_template(entry_point => 'root', verbose => 1);
+my $config_template = $validator->make_config_template(verbose => 1);
 
 ok (exists $config_template->{GENERAL}, 'section "GENERAL" exists');
 ok (exists $config_template->{GENERAL}->{logfile}, '"logfile" exists');
 ok ($config_template->{GENERAL}->{logfile} = 'absolute path to logfile (?-xism:/.*)', 'logifle has correct content');
+
 
 done_testing();
 
