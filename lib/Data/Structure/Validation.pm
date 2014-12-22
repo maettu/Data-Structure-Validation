@@ -120,7 +120,7 @@ sub _make_config_template{
 
                 # we guess that if a section does not have a value
                 # we might be interested in entering into it, too
-                # Conversely, if there is a value, it is an end-point.
+                # Inversely, if there is a value, it is an end-point.
                 if (! exists  $schema_section->{$key}->{value}){
                     $config->{$key} = _make_config_template(
                         $schema_section->{$key},
@@ -312,7 +312,11 @@ sub _check_mandatory_keys{
                and $schema_section->{$key}->{mandatory}){
 
             explain "true\n";
-            bailout "mandatory key '$key' missing", @parent_keys
+            my $error_msg = '';
+            $error_msg = $schema_section->{$key}->{error_msg}
+                if exists $schema_section->{$key}->{error_msg};
+            bailout "mandatory key '$key' missing. Error msg: '$error_msg'",
+                @parent_keys
                 unless exists $config_section->{$key};
         }
         else{

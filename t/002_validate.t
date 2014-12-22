@@ -23,7 +23,7 @@ my $schema = {
     GENERAL => {
         mandatory   => 1,
         description => 'general settings',
-        error-msg   => 'Section GENERAL missing',
+        error_msg   => 'Section GENERAL missing',
         members => {
             logfile => {
                 value       => qr{/.*},
@@ -67,7 +67,8 @@ my $schema = {
         }
     },
     NOT_THERE => {
-        mandatory => 1
+        mandatory => 1,
+        error_msg => 'We shall not proceed without a section that is NOT_THERE',
     }
 };
 
@@ -131,6 +132,15 @@ my $config_template = $validator->make_config_template(entry_point => $schema->{
 ok (exists $config_template->{'silo-.+'}, 'entry point "silos" found');
 ok ($config_template->{'silo-.+'}->{url} eq 'url of the silo server. Only https:// allowed(?-xism:https.*)',
     'url has correct content');
+
+# check error messages from schema.
+$config = {
+
+};
+
+@errors = $validator->validate($config, verbose=>1);
+ok (scalar(@errors) == 2, '2 errors');
+ok (_any_error_contains("We shall not proceed without a section that is NOT_THERE"), 'correct error msg');
 
 done_testing();
 
