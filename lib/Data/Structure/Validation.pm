@@ -43,7 +43,14 @@ sub make_config_template{
     my %p    = @_;
     _reset_globals();
     $verbose = 1 if exists $p{verbose} and $p{verbose};
-    my $config = _make_config_template($self->{schema},0);
+    my $entry_point;
+    if (exists $p{entry_point}){
+        $entry_point = $p{entry_point};
+    }
+    else{
+        $entry_point = $self->{schema};
+    }
+    my $config = _make_config_template($entry_point,0);
 
     return $config;
 }
