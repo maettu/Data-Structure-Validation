@@ -51,7 +51,6 @@ sub make_config_template{
         $entry_point = $self->{schema};
     }
     my $config = _make_config_template($entry_point,0);
-
     return $config;
 }
 
@@ -119,15 +118,16 @@ sub _make_config_template{
                 }
                 explain "\n";
 
+                # we guess that if a section does not have a value
+                # we might be interested in entering into it, too
+                # Conversely, if there is a value, it is an end-point.
                 if (! exists  $schema_section->{$key}->{value}){
                     $config->{$key} = _make_config_template(
                         $schema_section->{$key},
                         $depth+$depth_add,
                     );
-
                 }
             }
-
         }
     }
     return $config;
