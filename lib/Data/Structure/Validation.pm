@@ -37,13 +37,15 @@ sub validate{
     return @errors;
 }
 
+# produce a config template from the schema given
 sub make_config_template{
     my $self = shift;
     my %p    = @_;
     _reset_globals();
     $verbose = 1 if exists $p{verbose} and $p{verbose};
-
-
+    my $entry_point = $p{entry_point} // 'root';
+    my $config = _make_config_template($self->{schema}, $entry_point, 0);
+    return $config;
 }
 
 
@@ -75,8 +77,62 @@ sub explain ($) {
     print $string if $verbose;
 }
 
+# make template: recursive tree traversal
+sub _make_config_template{
+    my $schema_section = shift;
+    my $entry_point    = shift;
+    my $depth          = shift;
+    # as soon as entry_point was found, config is recorded
+    my $record_flag    = shift;
 
-# sub for recursive tree traversal
+    my $config = {};
+
+    for my $key (sort keys %{$schema_section}){
+
+        # config keys always are hashes in schema.
+        if (ref $schema_section->{$key} eq ref {} ){
+            my $depth_add;
+            if ($key eq 'members'){
+                # "members" indicates children but is not written in config
+                $depth_add = 0;
+                return _make_config_template(
+                    $schema_section->{$key},
+                    $entry_point,
+                    $depth+$depth_add,
+                    $record_flag
+                );
+            }
+            else{
+                $depth_add = 1;
+                explain ' ' x ($depth*4). "$key";
+
+                if (exists $schema_section->{$key}->{description}){
+                    explain " => $schema_section->{$key}->{description}";
+                    $config->{$key} = $schema_section->{$key}->{description}
+                }
+
+                if (exists $schema_section->{$key}->{value}){
+                    explain " $schema_section->{$key}->{value}";
+                    $config->{$key} .= ' '.$schema_section->{$key}->{value};
+                }
+                explain "\n";
+
+                if (! exists  $schema_section->{$key}->{value}){
+                    $config->{$key} = _make_config_template(
+                        $schema_section->{$key},
+                        $entry_point,
+                        $depth+$depth_add,
+                        $record_flag,
+                    );
+                }
+            }
+
+        }
+    }
+    return $config;
+}
+
+# validate: recursive tree traversal
 sub _validate{
     # $(word)_section are *not* the data fields but the sections of the
     # config / schema the recursive algorithm is currently working on.
@@ -112,8 +168,6 @@ sub _validate{
         else{
             $descend_into = 1;
         }
-
-        die "haha!" if exists $schema_section->{'silo-a'};
 
         # recursion
         if ((ref $config_section->{$key} eq ref {})
