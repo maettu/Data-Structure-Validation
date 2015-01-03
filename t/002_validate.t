@@ -130,7 +130,7 @@ ok ($config_template->{GENERAL}->{logfile} = 'absolute path to logfile (?-xism:/
 
 my $config_template = $validator->make_config_template(entry_point => $schema->{GENERAL}->{members}->{silos});
 ok (exists $config_template->{'silo-.+'}, 'entry point "silos" found');
-ok ($config_template->{'silo-.+'}->{url} eq 'url of the silo server. Only https:// allowed(?-xism:https.*)',
+ok ($config_template->{'silo-.+'}->{url} eq 'url of the silo server. Only https:// allowed(?^:https.*)',
     'url has correct content');
 
 # check error messages from schema.
