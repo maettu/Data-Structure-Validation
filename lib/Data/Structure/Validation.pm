@@ -7,6 +7,8 @@ use Carp;
 my $verbose;
 my @errors;      # this will be collecting all errors
 
+our $VERSION = '0.0.0';
+
 ##################
 # (public) methods
 ##################
