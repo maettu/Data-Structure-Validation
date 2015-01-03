@@ -389,6 +389,26 @@ Data::Structure::Validation - Validate a Perl Data Structure with a Schema
 
 Specify a schema as a hash of hashes. Describe your restrictions and verify a data structure against the schema.
 
+=head2 Regex Enabled Keys
+ animals => {
+    # schema snip
+    members => {
+        'duck.*' => {
+            regex => 1
+        }
+    }
+ }
+
+ # config snip
+ animals => {
+    duck     => 'ok',
+    duckling => 'ok, too',
+    miniduck => 'not ok'
+ }
+
+Regex enabled keys allow to define config keys that match a certain pattern.
+This is useful if groups of similar members need to be present.
+
 
 
 =head1 BUGS AND LIMITATIONS
