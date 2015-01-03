@@ -384,5 +384,23 @@ Data::Structure::Validation - Validate a Perl Data Structure with a Schema
  my @errors = $validator->validate($config, verbose=>0);
  # no errors :-)
 
+
+=head1 DESCRIPTION
+
+Specify a schema as a hash of hashes. Describe your restrictions and verify a data structure against the schema.
+
+
+
+=head1 BUGS AND LIMITATIONS
+
+
+=head1 AUTHOR
+Matthias Bloch
+
+=head1 LICENCE
+
+This module is free software; you can redistribute it and/or modify it under the same terms as Perl itself. See perlartistic.
+
+
 =cut
 1;
