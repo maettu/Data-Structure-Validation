@@ -346,7 +346,6 @@ Data::Structure::Validation - Validate a Perl Data Structure with a Schema
  use Data::Structure::Validation;
  my $schema = {
     section => {
-        mandatory   => 1,
         description => 'a section with a few members',
         error_msg   => 'cannot find "section" in config',
         members => {
@@ -364,6 +363,9 @@ Data::Structure::Validation - Validate a Perl Data Structure with a Schema
                     return undef
                         if $self->{value} == 42;
                 }
+            },
+            wuu => {
+                optional => 1
             }
         }
     }
@@ -375,6 +377,7 @@ Data::Structure::Validation - Validate a Perl Data Structure with a Schema
     section => {
         foo => 'frobnicate',
         bar => 42,
+        # "wuu" being optional can be omitted..
     }
  };
 

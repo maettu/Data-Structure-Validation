@@ -6,7 +6,6 @@ use Data::Structure::Validation;
 
 my $schema = {
     section => {
-        mandatory   => 1,
         description => 'a section with a few members',
         error_msg   => 'cannot find "section" in config',
         members => {
@@ -24,6 +23,9 @@ my $schema = {
                     return undef
                         if $self->{value} == 42;
                 }
+            },
+            wuu => {
+                optional => 1
             }
         }
     }
@@ -35,6 +37,7 @@ my $config = {
     section => {
         foo => 'frobnicate',
         bar => 42,
+        # "wuu" being optional can be omitted..
     }
 };
 
