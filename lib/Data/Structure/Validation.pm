@@ -192,6 +192,9 @@ sub _validate{
         $config_section, $schema_section, $depth, @parent_keys
     );
 
+    # TODO: restrictions for regex keys. "mandatory" / "optional"
+    # does not really apply.
+
 }
 
 
@@ -308,10 +311,18 @@ sub _check_mandatory_keys{
 
     for my $key (keys %{$schema_section}){
         explain ' 'x($depth*4). "Checking if '$key' is mandatory: ";
-        if (exists $schema_section->{$key}->{mandatory}
-               and $schema_section->{$key}->{mandatory}){
+        unless (exists $schema_section->{$key}->{optional}
+                   and $schema_section->{$key}->{optional}){
 
             explain "true\n";
+
+            # regex-keys are never mandatory.
+            if (exists $schema_section->{$key}->{regex}
+                   and $schema_section->{$key}->{regex}){
+                explain "regex enabled keys cannot be mandatory, directly.";
+                next;
+            }
+
             my $error_msg = '';
             $error_msg = $schema_section->{$key}->{error_msg}
                 if exists $schema_section->{$key}->{error_msg};

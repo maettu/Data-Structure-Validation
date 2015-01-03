@@ -21,7 +21,6 @@ my $config = {
 
 my $schema = {
     GENERAL => {
-        mandatory   => 1,
         description => 'general settings',
         error_msg   => 'Section GENERAL missing',
         members => {
@@ -29,18 +28,14 @@ my $schema = {
                 value       => qr{/.*},
                 # or a coderef: value => sub{return 1},
                 description => 'absolute path to logfile',
-                mandatory   => 1,
             },
             cachedb => {
                 value => qr{/.*},
                 description => 'absolute path to cache (sqlite) database file',
-                mandatory => 1,
             },
             history => {
-                mandatory => 1,
             },
             silos => {
-                mandatory   => 1,
                 description => 'silos store collected data',
                 # "members" stands for all "non-internal" fields
                 members => {
@@ -48,17 +43,14 @@ my $schema = {
                         regex => 1,
                         members => {
                             url => {
-                                mandatory   => 1,
                                 value       => qr{https.*},
                                 example     => 'https://silo-a/api',
                                 description => 'url of the silo server. Only https:// allowed',
                             },
                             key => {
-                                mandatory   => 1,
                                 description => 'shared secret to identify node'
                             },
                             not_existing => {
-                                mandatory => 1,
                             }
                         }
                     }
@@ -67,7 +59,6 @@ my $schema = {
         }
     },
     NOT_THERE => {
-        mandatory => 1,
         error_msg => 'We shall not proceed without a section that is NOT_THERE',
     }
 };
@@ -138,7 +129,7 @@ $config = {
 
 };
 
-@errors = $validator->validate($config, verbose=>1);
+@errors = $validator->validate($config, verbose=>0);
 ok (scalar(@errors) == 2, '2 errors');
 ok (_any_error_contains("We shall not proceed without a section that is NOT_THERE"), 'correct error msg');
 
