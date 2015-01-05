@@ -194,10 +194,6 @@ sub _validate{
     _check_mandatory_keys(
         $config_section, $schema_section, $depth, @parent_keys
     );
-
-    # TODO: restrictions for regex keys. "mandatory" / "optional"
-    # does not really apply.
-
 }
 
 
@@ -262,7 +258,6 @@ sub __value_is_valid{
         # currently, 2 type of restrictions are supported:
         # (callback) code and regex
         if (ref($schema_section->{$key}->{value}) eq 'CODE'){
-            # XXX implement callback harness here (if needed)
             # possibly never implement this because of new "validator"
         }
         elsif (ref($schema_section->{$key}->{value}) eq 'Regexp'){
@@ -424,6 +419,7 @@ Specify a schema as a hash of hashes. Describe your restrictions and verify a da
 
 Regex enabled keys allow to define config keys that match a certain pattern.
 This is useful if groups of similar members need to be present.
+Unless such a key is optional at minimum one matching key in the configuration is required.
 
 
 
