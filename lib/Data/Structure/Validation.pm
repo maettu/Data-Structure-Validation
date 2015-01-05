@@ -2,6 +2,7 @@ use 5.10.1;
 use strict;
 use warnings;
 package Data::Structure::Validation;
+# ABSTRACT: Validate a Perl Data Structure with a Schema
 use Carp;
 
 my $verbose;
@@ -317,20 +318,29 @@ sub _check_mandatory_keys{
                    and $schema_section->{$key}->{optional}){
 
             explain "true\n";
+            next if exists $config_section->{$key};
 
-            # regex-keys are never mandatory.
+            # regex-keys never directly occur.
             if (exists $schema_section->{$key}->{regex}
                    and $schema_section->{$key}->{regex}){
-                explain "regex enabled keys cannot be mandatory, directly.";
-                next;
+                explain ' 'x($depth*4)."regex enabled key found. ";
+                explain "Checking config keys.. ";
+                my $c = 0;
+                # look which keys match the regex
+                for my $c_key (keys %{$config_section}){
+                    $c++ if $c_key =~ /$key/;
+                }
+                explain "$c matching occurencies found";
+                next if $c > 0;
             }
+
+            # should only get here in case of error.
 
             my $error_msg = '';
             $error_msg = $schema_section->{$key}->{error_msg}
                 if exists $schema_section->{$key}->{error_msg};
             bailout "mandatory key '$key' missing. Error msg: '$error_msg'",
-                @parent_keys
-                unless exists $config_section->{$key};
+                @parent_keys;
         }
         else{
             explain "false\n";
@@ -342,6 +352,10 @@ sub _check_mandatory_keys{
 =pod
 =head1 NAME
 Data::Structure::Validation - Validate a Perl Data Structure with a Schema
+
+=head1 VERSION
+
+version 0.0.0
 
 =head1 SYNOPSIS
 
