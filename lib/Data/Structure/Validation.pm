@@ -275,7 +275,7 @@ sub __value_is_valid{
             # XXX match literally? How much sense does this make?!
 
             explain ' 'x($depth*4). "neither CODE nor Regexp\n";
-            bailout "'$key' not CODE or Regexp", @parent_keys;
+            bailout "'$key' not CODE nor Regexp", @parent_keys;
         }
 
     }
@@ -325,7 +325,7 @@ sub _check_mandatory_keys{
                 for my $c_key (keys %{$config_section}){
                     $c++ if $c_key =~ /$key/;
                 }
-                explain "$c matching occurencies found";
+                explain "$c matching occurencies found\n";
                 next if $c > 0;
             }
 
