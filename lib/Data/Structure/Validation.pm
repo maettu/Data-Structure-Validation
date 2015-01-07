@@ -176,6 +176,7 @@ sub _validate{
         # recursion
         if ((ref $config_section->{$key} eq ref {})
                 and $descend_into){
+            print "\n***\n'$key' is not a leaf and we descend into it\n***\n";
             push @parent_keys, $key;
             _validate(
                 $config_section->{$key},
@@ -185,6 +186,19 @@ sub _validate{
             );
             # to undo push before entering recursion.
             pop @parent_keys;
+        }
+        # Make sure that key in config is a leaf in schema.
+        # We cannot descend into a non-existing branch in config
+        # but it might be required by the schema.
+        else {
+            explain "checking config key '$key' which is a leaf..";
+            if (ref $schema_section->{$key_schema_to_descend_into} eq ref {}){
+                explain "but schema requires members.\n";
+                bailout "'$key' should have members", @parent_keys;
+            }
+            else {
+                explain "schema key is also a leaf. ok.\n";
+            }
         }
     }
 

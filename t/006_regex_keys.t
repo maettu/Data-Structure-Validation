@@ -15,7 +15,14 @@ my $schema = {
                 value => qr{something.*}
             }
         }
-    }
+    },
+    bar => {
+        members => {
+            bar_one => {
+                value => qr{not_there}
+            }
+        }
+    },
 };
 
 my $config = {
@@ -24,7 +31,9 @@ my $config = {
         two => 'something else'
     },
     'foo'  => 'error: members missing',
-    'fo'   => 'not in schema'
+    'fo'   => 'not in schema',
+
+    bar => 'empty'
 };
 
 my $validator = Data::Structure::Validation->new($schema);
