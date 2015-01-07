@@ -192,7 +192,9 @@ sub _validate{
         # but it might be required by the schema.
         else {
             explain "checking config key '$key' which is a leaf..";
-            if (ref $schema_section->{$key_schema_to_descend_into} eq ref {}){
+            if (ref $schema_section->{$key_schema_to_descend_into} eq ref {}
+                and exists $schema_section->{$key_schema_to_descend_into}->{members}
+            ){
                 explain "but schema requires members.\n";
                 bailout "'$key' should have members", @parent_keys;
             }
