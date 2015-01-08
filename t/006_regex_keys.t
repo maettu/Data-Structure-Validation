@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 use Test::More;
+use t::Helpers;
 
 use lib 'lib';
 use Data::Structure::Validation;
@@ -38,6 +39,8 @@ my $config = {
 
 my $validator = Data::Structure::Validation->new($schema);
 
-my @errors = $validator->validate($config, verbose=>1);
+my @errors = $validator->validate($config, verbose=>0);
+ok (scalar(@errors)==3, '3 errors detected');
+ok (t::Helpers::any_error_contains('should have members', @errors), 'config leaf that should be branch detected');
 
-use Data::Dumper; print Dumper \@errors;
+done_testing;

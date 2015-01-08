@@ -176,7 +176,7 @@ sub _validate{
         # recursion
         if ((ref $config_section->{$key} eq ref {})
                 and $descend_into){
-            print "\n***\n'$key' is not a leaf and we descend into it\n***\n";
+            explain "'$key' is not a leaf and we descend into it\n";
             push @parent_keys, $key;
             _validate(
                 $config_section->{$key},
@@ -192,8 +192,13 @@ sub _validate{
         # but it might be required by the schema.
         else {
             explain "checking config key '$key' which is a leaf..";
-            if (ref $schema_section->{$key_schema_to_descend_into} eq ref {}
-                and exists $schema_section->{$key_schema_to_descend_into}->{members}
+            if ( $key_schema_to_descend_into
+                    and
+                 $schema_section->{$key_schema_to_descend_into}
+                    and
+                ref $schema_section->{$key_schema_to_descend_into} eq ref {}
+                    and
+                exists $schema_section->{$key_schema_to_descend_into}->{members}
             ){
                 explain "but schema requires members.\n";
                 bailout "'$key' should have members", @parent_keys;
@@ -245,7 +250,6 @@ sub __key_present_in_schema{
             }
         }
     }
-    # XXX how much sense does it make to have mandatory regex enabled keys?
 
     # if $key_schema_to_descend_into is still undef we were unable to
     # match it against a key in the schema.
