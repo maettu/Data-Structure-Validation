@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use Test::More;
 
+use t::Helpers;
 use lib 'lib';
 use Data::Structure::Validation;
 
@@ -78,18 +79,17 @@ my @errors = $validator->validate($config, verbose=>0);
 
 ok (scalar(@errors)==2, '2 errors found');
 
-sub _any_error_contains {
-    my $string = shift;
-    for my $error (@errors){
-        return 1 if $error =~ /$string/;
-    }
-    return undef;
-}
+ok (t::Helpers::any_error_contains("not_existing", @errors),
+    "mandatory schema key 'not_existing' not in config");
 
-ok (_any_error_contains("not_existing"), "mandatory schema key 'not_existing' not in config");
-ok (_any_error_contains("NOT_THERE"), "mandatory schema section 'NOT_THERE' not found in config");
-ok (_any_error_contains("silo-a"), "missing value from 'silo-a'");
-ok (_any_error_contains("Path: root"), "section missing from 'root'");
+ok (t::Helpers::any_error_contains("NOT_THERE", @errors),
+    "mandatory schema section 'NOT_THERE' not found in config");
+
+ok (t::Helpers::any_error_contains("silo-a", @errors),
+    "missing value from 'silo-a'");
+
+ok (t::Helpers::any_error_contains("Path: root", @errors),
+    "section missing from 'root'");
 
 @errors = $validator->validate($config, verbose=>0);
 
@@ -131,7 +131,10 @@ $config = {
 
 @errors = $validator->validate($config, verbose=>0);
 ok (scalar(@errors) == 2, '2 errors');
-ok (_any_error_contains("We shall not proceed without a section that is NOT_THERE"), 'correct error msg');
+ok (t::Helpers::any_error_contains(
+        "We shall not proceed without a section that is NOT_THERE",
+        @errors),
+    'correct error msg');
 
 done_testing();
 
