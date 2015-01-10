@@ -21,7 +21,4 @@ my @errors = $validator->validate($config, verbose=>1);
 
 ok (scalar(@errors)==0, 'no errors');
 
-use Data::Dumper; print Dumper \@errors;
-
-
 done_testing;
