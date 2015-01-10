@@ -73,7 +73,6 @@ sub _reset_globals{
         = Data::Structure::Validation::Error::Collection->new();
 }
 
-# XXX bailout without "@parent_keys"
 sub bailout {
     my $self = shift;
     my $string = shift;
