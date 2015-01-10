@@ -8,7 +8,6 @@ use Carp;
 
 # XXX remove class variables
 my $verbose;
-my @errors;      # this will be collecting all errors
 
 # XXX this needs to be a data field of the D::S::V object;
 my $errors = Data::Structure::Validation::Error::Collection->new();
@@ -69,7 +68,7 @@ sub make_config_template{
 
 sub _reset_globals{
     $verbose = undef;
-    @errors  = ();
+    $errors = Data::Structure::Validation::Error::Collection->new();
 }
 
 # XXX bailout without "@parent_keys"
@@ -84,8 +83,6 @@ sub bailout ($@) {
         path => $msg_parent_keys,
         caller => "$sub line $line"
     );
-    push @errors, "$string (Path: $msg_parent_keys) caller: $sub line $line";
-
 }
 
 # this is not an object method because it is a helper sub for internal
