@@ -6,9 +6,6 @@ use Data::Structure::Validation::Error::Collection;
 # ABSTRACT: Validate a Perl Data Structure with a Schema
 use Carp;
 
-# XXX remove class variables
-my $verbose;
-
 our $VERSION = '0.0.0';
 
 ##################
@@ -18,12 +15,13 @@ our $VERSION = '0.0.0';
 sub new{
     my $class  = shift;
     my $schema = shift || croak '$schema not supplied';
-    $verbose   = shift;
+    my $verbose   = shift;
 
 
     my $self = {
         schema  => $schema,
         errors  => Data::Structure::Validation::Error::Collection->new(),
+        verbose => $verbose,
     };
     bless ($self, $class);
     return $self;
@@ -35,7 +33,7 @@ sub validate{
     my $config = shift || croak '$config not supplied';
     my %p      = @_;
     $self->_reset_globals();
-    $verbose = 1 if exists $p{verbose} and $p{verbose};
+    $self->{verbose} = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
     $self->_validate($config, $self->{schema}, 0, 'root');
@@ -47,7 +45,7 @@ sub make_config_template{
     my $self = shift;
     my %p    = @_;
     _reset_globals();
-    $verbose = 1 if exists $p{verbose} and $p{verbose};
+    $self->{verbose} = 1 if exists $p{verbose} and $p{verbose};
     my $entry_point;
     if (exists $p{entry_point}){
         $entry_point = $p{entry_point};
@@ -55,7 +53,7 @@ sub make_config_template{
     else{
         $entry_point = $self->{schema};
     }
-    my $config = _make_config_template($entry_point,0);
+    my $config = _make_config_template($self, $entry_point,0);
     return $config;
 }
 
@@ -66,8 +64,9 @@ sub make_config_template{
 
 sub _reset_globals{
     my $self = shift;
-    $verbose = undef;
-    $self->{errors} = Data::Structure::Validation::Error::Collection->new();
+    $self->{verbose} = undef;
+    $self->{errors}
+        = Data::Structure::Validation::Error::Collection->new();
 }
 
 # XXX bailout without "@parent_keys"
@@ -87,14 +86,16 @@ sub bailout ($$@) {
 
 # this is not an object method because it is a helper sub for internal
 # use and not a method that describes an object.
-sub explain ($) {
+sub explain ($$) {
+    my $self = shift;
     my $string = shift;
     # XXX enable multiple verbosity levels
-    print $string if $verbose;
+    print $string if $self->{verbose};
 }
 
 # make template: recursive tree traversal
 sub _make_config_template{
+    my $self = shift;
     my $schema_section = shift;
     my $depth          = shift;
 
@@ -109,30 +110,32 @@ sub _make_config_template{
                 # "members" indicates children but is not written in config
                 $depth_add = 0;
                 return _make_config_template(
+                    $self,
                     $schema_section->{$key},
                     $depth+$depth_add,
                 );
             }
             else{
                 $depth_add = 1;
-                explain ' ' x ($depth*4). "$key";
+                explain $self, ' ' x ($depth*4). "$key";
 
                 if (exists $schema_section->{$key}->{description}){
-                    explain " => $schema_section->{$key}->{description}";
+                    explain $self, " => $schema_section->{$key}->{description}";
                     $config->{$key} = $schema_section->{$key}->{description}
                 }
 
                 if (exists $schema_section->{$key}->{value}){
-                    explain " $schema_section->{$key}->{value}";
+                    explain $self, " $schema_section->{$key}->{value}";
                     $config->{$key} .= $schema_section->{$key}->{value};
                 }
-                explain "\n";
+                explain $self, "\n";
 
                 # we guess that if a section does not have a value
                 # we might be interested in entering into it, too
                 # Inversely, if there is a value, it is an end-point.
                 if (! exists  $schema_section->{$key}->{value}){
                     $config->{$key} = _make_config_template(
+                        $self,
                         $schema_section->{$key},
                         $depth+$depth_add,
                     );
@@ -155,7 +158,7 @@ sub _validate{
     my @parent_keys    = @_;
 
     for my $key (keys %{$config_section}){
-        explain ' ' x ($depth*4). "'$key'";
+        explain $self, ' ' x ($depth*4). "'$key'";
         # checks
         my $key_schema_to_descend_into =
             $self->__key_present_in_schema(
@@ -175,7 +178,7 @@ sub _validate{
         if (exists  $schema_section->{$key}
                 and $schema_section->{$key}->{no_descend_into}
                 and $schema_section->{$key}->{no_descend_into}){
-            explain "skipping $key\n";
+            explain $self, "skipping $key\n";
         }
         else{
             $descend_into = 1;
@@ -184,7 +187,7 @@ sub _validate{
         # recursion
         if ((ref $config_section->{$key} eq ref {})
                 and $descend_into){
-            explain "'$key' is not a leaf and we descend into it\n";
+            explain $self, "'$key' is not a leaf and we descend into it\n";
             push @parent_keys, $key;
             $self->_validate(
                 $config_section->{$key},
@@ -199,7 +202,7 @@ sub _validate{
         # We cannot descend into a non-existing branch in config
         # but it might be required by the schema.
         else {
-            explain "checking config key '$key' which is a leaf..";
+            explain $self, "checking config key '$key' which is a leaf..";
             if ( $key_schema_to_descend_into
                     and
                  $schema_section->{$key_schema_to_descend_into}
@@ -208,11 +211,11 @@ sub _validate{
                     and
                 exists $schema_section->{$key_schema_to_descend_into}->{members}
             ){
-                explain "but schema requires members.\n";
+                explain $self, "but schema requires members.\n";
                 bailout $self, "'$key' should have members", @parent_keys;
             }
             else {
-                explain "schema key is also a leaf. ok.\n";
+                explain $self, "schema key is also a leaf. ok.\n";
             }
         }
     }
@@ -239,7 +242,7 @@ sub __key_present_in_schema{
 
     # direct match: exact declaration
     if (exists $schema_section->{$key}){
-        explain " ok\n";
+        explain $self, " ok\n";
         $key_schema_to_descend_into = $key;
     }
     # match against a pattern
@@ -254,7 +257,7 @@ sub __key_present_in_schema{
                            and $schema_section->{$match_key}->{regex};
 
             if ($key =~ /$match_key/){
-                explain "'$key' matches $match_key\n";
+                explain $self, "'$key' matches $match_key\n";
                 $key_schema_to_descend_into = $match_key;
             }
         }
@@ -263,9 +266,9 @@ sub __key_present_in_schema{
     # if $key_schema_to_descend_into is still undef we were unable to
     # match it against a key in the schema.
     unless ($key_schema_to_descend_into){
-        explain "$key not in schema, keys available: ";
-        explain "'$_' " for (keys %{$schema_section});
-        explain "\n";
+        explain $self, "$key not in schema, keys available: ";
+        explain $self, "'$_' " for (keys %{$schema_section});
+        explain $self, "\n";
         bailout $self, "key '$key' not found in schema\n", @parent_keys;
     }
     return $key_schema_to_descend_into
@@ -283,7 +286,7 @@ sub __value_is_valid{
 
     if (exists  $schema_section->{$key}
             and $schema_section->{$key}->{value}){
-        explain ' 'x($depth*4). ref($schema_section->{$key}->{value})."\n";
+        explain $self, ' 'x($depth*4). ref($schema_section->{$key}->{value})."\n";
 
         # currently, 2 type of restrictions are supported:
         # (callback) code and regex
@@ -291,14 +294,14 @@ sub __value_is_valid{
             # possibly never implement this because of new "validator"
         }
         elsif (ref($schema_section->{$key}->{value}) eq 'Regexp'){
-            explain ' 'x($depth*4). "match '$config_section->{$key}' against '$schema_section->{$key}->{value}'";
+            explain $self, ' 'x($depth*4). "match '$config_section->{$key}' against '$schema_section->{$key}->{value}'";
 
             if ($config_section->{$key} =~ m/^$schema_section->{$key}->{value}$/){
-                explain " ok.\n"
+                explain $self, " ok.\n"
             }
             else{
                 # XXX never reach this?
-                explain " no.\n";
+                explain $self, " no.\n";
                 bailout $self, "$config_section->{$key} does not match ^$schema_section->{$key}->{value}\$", @parent_keys;
             }
         }
@@ -306,7 +309,7 @@ sub __value_is_valid{
             # XXX match literally? How much sense does this make?!
             # also, this is not tested
 
-            explain ' 'x($depth*4). "neither CODE nor Regexp\n";
+            explain $self, ' 'x($depth*4). "neither CODE nor Regexp\n";
             bailout $self, "'$key' not CODE nor Regexp", @parent_keys;
         }
 
@@ -320,14 +323,14 @@ sub __validator_returns_undef {
     my $schema_section = shift;
     my $depth          = shift;
     my @parent_keys    = @_;
-    explain ' 'x($depth*4). "running validator for '$key': $config_section->{$key}\n";
+    explain $self, ' 'x($depth*4). "running validator for '$key': $config_section->{$key}\n";
     my $return_value = $schema_section->{$key}->{validator}->($config_section->{$key}, $config_section);
     if ($return_value){
-        explain ' 'x($depth*4)."validator error: $return_value\n";
+        explain $self, ' 'x($depth*4)."validator error: $return_value\n";
         bailout $self, "Execution of validator for '$key' returns with error: $return_value", @parent_keys;
     }
     else {
-        explain ' 'x($depth*4). "successful validation for key '$key'\n";
+        explain $self, ' 'x($depth*4). "successful validation for key '$key'\n";
     }
 }
 
@@ -342,24 +345,24 @@ sub _check_mandatory_keys{
     my @parent_keys    = @_;
 
     for my $key (keys %{$schema_section}){
-        explain ' 'x($depth*4). "Checking if '$key' is mandatory: ";
+        explain $self, ' 'x($depth*4). "Checking if '$key' is mandatory: ";
         unless (exists $schema_section->{$key}->{optional}
                    and $schema_section->{$key}->{optional}){
 
-            explain "true\n";
+            explain $self, "true\n";
             next if exists $config_section->{$key};
 
             # regex-keys never directly occur.
             if (exists $schema_section->{$key}->{regex}
                    and $schema_section->{$key}->{regex}){
-                explain ' 'x($depth*4)."regex enabled key found. ";
-                explain "Checking config keys.. ";
+                explain $self, ' 'x($depth*4)."regex enabled key found. ";
+                explain $self, "Checking config keys.. ";
                 my $c = 0;
                 # look which keys match the regex
                 for my $c_key (keys %{$config_section}){
                     $c++ if $c_key =~ /$key/;
                 }
-                explain "$c matching occurencies found\n";
+                explain $self, "$c matching occurencies found\n";
                 next if $c > 0;
             }
 
@@ -372,7 +375,7 @@ sub _check_mandatory_keys{
                 @parent_keys;
         }
         else{
-            explain "false\n";
+            explain $self, "false\n";
         }
     }
 }
