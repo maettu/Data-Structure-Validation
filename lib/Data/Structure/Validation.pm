@@ -73,7 +73,8 @@ sub _reset_globals{
         = Data::Structure::Validation::Error::Collection->new();
 }
 
-sub bailout {
+# XXX rename -> error
+sub error {
     my $self = shift;
     my $string = shift;
     my $msg_parent_keys = join '->', @{$self->{parent_keys}};
@@ -86,8 +87,7 @@ sub bailout {
     );
 }
 
-# this is not an object method because it is a helper sub for internal
-# use and not a method that describes an object.
+# explains what we are doing.
 sub explain {
     my $self = shift;
     my $string = shift;
@@ -213,7 +213,7 @@ sub _validate{
                 exists $schema_section->{$key_schema_to_descend_into}->{members}
             ){
                 $self->explain("but schema requires members.\n");
-                $self->bailout("'$key' should have members");
+                $self->error("'$key' should have members");
             }
             else {
                 $self->explain("schema key is also a leaf. ok.\n");
@@ -269,7 +269,7 @@ sub __key_present_in_schema{
         $self->explain(">>$key not in schema, keys available: ");
         $self->explain(join (", ", (keys %{$schema_section})));
         $self->explain("\n");
-        $self->bailout("key '$key' not found in schema\n");
+        $self->error("key '$key' not found in schema\n");
     }
     return $key_schema_to_descend_into
 }
@@ -300,7 +300,7 @@ sub __value_is_valid{
             else{
                 # XXX never reach this?
                 $self->explain(" no.\n");
-                $self->bailout("$config_section->{$key} does not match ^$schema_section->{$key}->{value}\$");
+                $self->error("$config_section->{$key} does not match ^$schema_section->{$key}->{value}\$");
             }
         }
         else{
@@ -308,7 +308,7 @@ sub __value_is_valid{
             # also, this is not tested
 
             $self->explain("neither CODE nor Regexp\n");
-            $self->bailout("'$key' not CODE nor Regexp");
+            $self->error("'$key' not CODE nor Regexp");
         }
 
     }
@@ -323,7 +323,7 @@ sub __validator_returns_undef {
     my $return_value = $schema_section->{$key}->{validator}->($config_section->{$key}, $config_section);
     if ($return_value){
         $self->explain("validator error: $return_value\n");
-        $self->bailout("Execution of validator for '$key' returns with error: $return_value");
+        $self->error("Execution of validator for '$key' returns with error: $return_value");
     }
     else {
         $self->explain("successful validation for key '$key'\n");
@@ -365,7 +365,7 @@ sub _check_mandatory_keys{
             my $error_msg = '';
             $error_msg = $schema_section->{$key}->{error_msg}
                 if exists $schema_section->{$key}->{error_msg};
-            $self->bailout("mandatory key '$key' missing. Error msg: '$error_msg'");
+            $self->error("mandatory key '$key' missing. Error msg: '$error_msg'");
         }
         else{
             $self->explain("false\n");
