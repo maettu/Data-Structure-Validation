@@ -79,16 +79,16 @@ my @errors = $validator->validate($config, verbose=>0);
 
 ok (scalar(@errors)==2, '2 errors found');
 
-ok (t::Helpers::any_error_contains("not_existing", @errors),
+ok (t::Helpers::any_error_contains("not_existing", 'message', @errors),
     "mandatory schema key 'not_existing' not in config");
 
-ok (t::Helpers::any_error_contains("NOT_THERE", @errors),
+ok (t::Helpers::any_error_contains("NOT_THERE", 'message', @errors),
     "mandatory schema section 'NOT_THERE' not found in config");
 
-ok (t::Helpers::any_error_contains("silo-a", @errors),
+ok (t::Helpers::any_error_contains("silo-a", 'path', @errors),
     "missing value from 'silo-a'");
 
-ok (t::Helpers::any_error_contains("Path: root", @errors),
+ok (t::Helpers::any_error_contains("root", 'path', @errors),
     "section missing from 'root'");
 
 @errors = $validator->validate($config, verbose=>0);
@@ -133,6 +133,7 @@ $config = {
 ok (scalar(@errors) == 2, '2 errors');
 ok (t::Helpers::any_error_contains(
         "We shall not proceed without a section that is NOT_THERE",
+        'message',
         @errors),
     'correct error msg');
 

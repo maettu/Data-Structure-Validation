@@ -2,11 +2,16 @@ use 5.10.1;
 use strict;
 use warnings;
 package Data::Structure::Validation;
+use Data::Structure::Validation::Error::Collection;
 # ABSTRACT: Validate a Perl Data Structure with a Schema
 use Carp;
 
+# XXX remove class variables
 my $verbose;
 my @errors;      # this will be collecting all errors
+
+# XXX this needs to be a data field of the D::S::V object;
+my $errors = Data::Structure::Validation::Error::Collection->new();
 
 our $VERSION = '0.0.0';
 
@@ -37,7 +42,7 @@ sub validate{
 
     # start (recursive) validation with top level elements
     _validate($config, $self->{schema}, 0, 'root');
-    return @errors;
+    return $errors->as_array();
 }
 
 # produce a config template from the schema given
@@ -74,6 +79,11 @@ sub bailout ($@) {
     my $msg_parent_keys = join '->', @parent_keys;
     my (undef, undef, $line) = caller(0);
     my (undef, undef, undef, $sub) = caller(1);
+    $errors->add(
+        message => $string,
+        path => $msg_parent_keys,
+        caller => "$sub line $line"
+    );
     push @errors, "$string (Path: $msg_parent_keys) caller: $sub line $line";
 
 }
