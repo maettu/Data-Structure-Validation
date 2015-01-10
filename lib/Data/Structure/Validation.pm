@@ -8,7 +8,6 @@ use Carp;
 
 # XXX remove class variables
 my $verbose;
-my @errors;      # this will be collecting all errors
 
 # XXX this needs to be a data field of the D::S::V object;
 my $errors = Data::Structure::Validation::Error::Collection->new();
@@ -38,12 +37,12 @@ sub validate{
     my $self   = shift;
     my $config = shift || croak '$config not supplied';
     my %p      = @_;
-    _reset_globals();
+    $self->_reset_globals();
     $verbose = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
     $self->_validate($config, $self->{schema}, 0, 'root');
-    return $errors->as_array();
+    return $self->{errors}->as_array();
 }
 
 # produce a config template from the schema given
@@ -69,8 +68,9 @@ sub make_config_template{
 #################
 
 sub _reset_globals{
+    my $self = shift;
     $verbose = undef;
-    $errors = Data::Structure::Validation::Error::Collection->new();
+    $self->{errors} = Data::Structure::Validation::Error::Collection->new();
 }
 
 # XXX bailout without "@parent_keys"
@@ -81,7 +81,7 @@ sub bailout ($$@) {
     my $msg_parent_keys = join '->', @parent_keys;
     my (undef, undef, $line) = caller(0);
     my (undef, undef, undef, $sub) = caller(1);
-    $errors->add(
+    $self->{errors}->add(
         message => $string,
         path => $msg_parent_keys,
         caller => "$sub line $line"
