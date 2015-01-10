@@ -88,7 +88,7 @@ sub bailout ($$@) {
 
 # this is not an object method because it is a helper sub for internal
 # use and not a method that describes an object.
-sub explain ($$) {
+sub explain {
     my $self = shift;
     my $string = shift;
     # XXX enable multiple verbosity levels
@@ -101,7 +101,6 @@ sub explain ($$) {
 sub _make_config_template{
     my $self = shift;
     my $schema_section = shift;
-    my $depth          = shift;
 
     my $config = {};
 
@@ -116,33 +115,34 @@ sub _make_config_template{
                 return _make_config_template(
                     $self,
                     $schema_section->{$key},
-                    $depth+$depth_add,
+#~                     $depth+$depth_add,
                 );
             }
             else{
                 $depth_add = 1;
-                $self->explain (' ' x ($depth*4). "$key");
+                $self->explain (">>$key");
 
                 if (exists $schema_section->{$key}->{description}){
-                    explain $self, " => $schema_section->{$key}->{description}";
+                    $self->explain (" => $schema_section->{$key}->{description}");
                     $config->{$key} = $schema_section->{$key}->{description}
                 }
 
                 if (exists $schema_section->{$key}->{value}){
-                    explain $self, " $schema_section->{$key}->{value}";
+                    $self->explain (" $schema_section->{$key}->{value}");
                     $config->{$key} .= $schema_section->{$key}->{value};
                 }
-                explain $self, "\n";
+                $self->explain ("\n");
 
                 # we guess that if a section does not have a value
                 # we might be interested in entering into it, too
                 # Inversely, if there is a value, it is an end-point.
                 if (! exists  $schema_section->{$key}->{value}){
+                    $self->{depth}+=$depth_add;
                     $config->{$key} = _make_config_template(
                         $self,
                         $schema_section->{$key},
-                        $depth+$depth_add,
                     );
+                    $self->{depth}-=$depth_add;
                 }
             }
         }
