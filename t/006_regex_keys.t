@@ -41,6 +41,9 @@ my $validator = Data::Structure::Validation->new($schema);
 
 my @errors = $validator->validate($config, verbose=>0);
 ok (scalar(@errors)==3, '3 errors detected');
-ok (t::Helpers::any_error_contains('should have members', @errors), 'config leaf that should be branch detected');
+ok (t::Helpers::any_error_contains(
+    'should have members', @errors),
+    'config leaf that should be branch detected'
+);
 
 done_testing;
