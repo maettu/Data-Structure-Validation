@@ -17,6 +17,7 @@ sub new{
     my $schema = shift || croak '$schema not supplied';
     my $verbose   = shift;
 
+    # XXX think about making "parent" a parameter..
 
     my $self = {
         schema  => $schema,
@@ -24,6 +25,7 @@ sub new{
         verbose => $verbose,
         depth   => 0,
         indent  => 4, # how many spaces to indent in verbosity mode
+        parent_keys  => ['root'],
     };
     bless ($self, $class);
     return $self;
@@ -38,7 +40,7 @@ sub validate{
     $self->{verbose} = 1 if exists $p{verbose} and $p{verbose};
 
     # start (recursive) validation with top level elements
-    $self->_validate($config, $self->{schema}, 0, 'root');
+    $self->_validate($config, $self->{schema}, 'root');
     return $self->{errors}->as_array();
 }
 
@@ -75,8 +77,7 @@ sub _reset_globals{
 sub bailout {
     my $self = shift;
     my $string = shift;
-    my @parent_keys = @_;
-    my $msg_parent_keys = join '->', @parent_keys;
+    my $msg_parent_keys = join '->', @{$self->{parent_keys}};
     my (undef, undef, $line) = caller(0);
     my (undef, undef, undef, $sub) = caller(1);
     $self->{errors}->add(
@@ -156,22 +157,21 @@ sub _validate{
     # (Only) in the first call, these are identical.
     my $config_section = shift;
     my $schema_section = shift;
-    my @parent_keys    = @_;
 
     for my $key (keys %{$config_section}){
         $self->explain (">>'$key'");
         # checks
         my $key_schema_to_descend_into =
             $self->__key_present_in_schema(
-                $key, $config_section, $schema_section, @parent_keys
+                $key, $config_section, $schema_section
             );
 
         $self->__value_is_valid(
-            $key, $config_section, $schema_section, @parent_keys
+            $key, $config_section, $schema_section
         );
 
         $self->__validator_returns_undef(
-            $key, $config_section, $schema_section, @parent_keys
+            $key, $config_section, $schema_section
         ) if exists $schema_section->{$key}
              and exists $schema_section->{$key}->{validator};
 
@@ -190,15 +190,14 @@ sub _validate{
         if ((ref $config_section->{$key} eq ref {})
                 and $descend_into){
             $self->explain (">>'$key' is not a leaf and we descend into it\n");
-            push @parent_keys, $key;
+            push @{$self->{parent_keys}}, $key;
             $self->{depth}++;
             $self->_validate(
                 $config_section->{$key},
-                $schema_section->{$key_schema_to_descend_into}->{members},
-                @parent_keys
+                $schema_section->{$key_schema_to_descend_into}->{members}
             );
             # to undo push before entering recursion.
-            pop @parent_keys;
+            pop @{$self->{parent_keys}};
             $self->{depth}--;
         }
         # Make sure that key in config is a leaf in schema.
@@ -215,7 +214,7 @@ sub _validate{
                 exists $schema_section->{$key_schema_to_descend_into}->{members}
             ){
                 $self->explain("but schema requires members.\n");
-                $self->bailout("'$key' should have members", @parent_keys);
+                $self->bailout("'$key' should have members");
             }
             else {
                 $self->explain("schema key is also a leaf. ok.\n");
@@ -227,7 +226,7 @@ sub _validate{
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
     $self->_check_mandatory_keys(
-        $config_section, $schema_section, @parent_keys
+        $config_section, $schema_section
     );
 }
 
@@ -239,7 +238,6 @@ sub __key_present_in_schema{
     my $key            = shift;
     my $config_section = shift;
     my $schema_section = shift;
-    my @parent_keys    = @_;
 
     my $key_schema_to_descend_into;
 
@@ -272,7 +270,7 @@ sub __key_present_in_schema{
         $self->explain(">>$key not in schema, keys available: ");
         $self->explain(join (", ", (keys %{$schema_section})));
         $self->explain("\n");
-        $self->bailout("key '$key' not found in schema\n", @parent_keys);
+        $self->bailout("key '$key' not found in schema\n");
     }
     return $key_schema_to_descend_into
 }
@@ -284,7 +282,6 @@ sub __value_is_valid{
     my $key    = shift;
     my $config_section = shift;
     my $schema_section = shift;
-    my @parent_keys    = @_;
 
     if (exists  $schema_section->{$key}
             and $schema_section->{$key}->{value}){
@@ -304,7 +301,7 @@ sub __value_is_valid{
             else{
                 # XXX never reach this?
                 $self->explain(" no.\n");
-                $self->bailout("$config_section->{$key} does not match ^$schema_section->{$key}->{value}\$", @parent_keys);
+                $self->bailout("$config_section->{$key} does not match ^$schema_section->{$key}->{value}\$");
             }
         }
         else{
@@ -312,7 +309,7 @@ sub __value_is_valid{
             # also, this is not tested
 
             $self->explain("neither CODE nor Regexp\n");
-            $self->bailout("'$key' not CODE nor Regexp", @parent_keys);
+            $self->bailout("'$key' not CODE nor Regexp");
         }
 
     }
@@ -323,12 +320,11 @@ sub __validator_returns_undef {
     my $key    = shift;
     my $config_section = shift;
     my $schema_section = shift;
-    my @parent_keys    = @_;
     $self->explain("running validator for '$key': $config_section->{$key}\n");
     my $return_value = $schema_section->{$key}->{validator}->($config_section->{$key}, $config_section);
     if ($return_value){
         $self->explain("validator error: $return_value\n");
-        $self->bailout("Execution of validator for '$key' returns with error: $return_value", @parent_keys);
+        $self->bailout("Execution of validator for '$key' returns with error: $return_value");
     }
     else {
         $self->explain("successful validation for key '$key'\n");
@@ -342,7 +338,6 @@ sub _check_mandatory_keys{
     my $self = shift;
     my $config_section = shift;
     my $schema_section = shift;
-    my @parent_keys    = @_;
 
     for my $key (keys %{$schema_section}){
         $self->explain(">>Checking if '$key' is mandatory: ");
@@ -371,8 +366,7 @@ sub _check_mandatory_keys{
             my $error_msg = '';
             $error_msg = $schema_section->{$key}->{error_msg}
                 if exists $schema_section->{$key}->{error_msg};
-            $self->bailout("mandatory key '$key' missing. Error msg: '$error_msg'",
-                @parent_keys);
+            $self->bailout("mandatory key '$key' missing. Error msg: '$error_msg'");
         }
         else{
             $self->explain("false\n");
