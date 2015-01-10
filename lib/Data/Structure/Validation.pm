@@ -9,9 +9,6 @@ use Carp;
 # XXX remove class variables
 my $verbose;
 
-# XXX this needs to be a data field of the D::S::V object;
-my $errors = Data::Structure::Validation::Error::Collection->new();
-
 our $VERSION = '0.0.0';
 
 ##################
