@@ -159,8 +159,12 @@ sub _validate{
     my $config_section = shift;
     my $schema_section = shift;
 
+    $self->_add_defaults($config_section, $schema_section);
+
+
     for my $key (keys %{$config_section}){
         $self->explain (">>'$key'");
+
         # checks
         my $key_schema_to_descend_into =
             $self->__key_present_in_schema(
@@ -176,6 +180,7 @@ sub _validate{
         ) if exists $schema_section->{$key}
              and exists $schema_section->{$key}->{validator};
 
+        # transformer
         if (exists $schema_section->{$key}
             and exists $schema_section->{$key}->{transformer}){
 
@@ -212,7 +217,6 @@ sub _validate{
             $self->explain (
                 "not descending into '$key'. No members specified\n"
             );
-#~             use Data::Dumper; print Dumper $schema_section
         }
         else{
             $descend_into = 1;
@@ -263,7 +267,23 @@ sub _validate{
     );
 }
 
+# add defaults. Go over all keys *on that level* and if there is not
+# a value (or, most oftenly, a key) in config, add the key and the
+# default value.
 
+sub _add_defaults{
+    my $self           = shift;
+    my $config_section = shift;
+    my $schema_section = shift;
+
+    say 'hello @ add_defaults';
+
+    for my $key (keys %{$schema_section}){
+        next unless exists $schema_section->{$key}->{default};
+        $config_section->{$key} = $schema_section->{$key}->{default}
+            unless $config_section->{$key};
+    }
+}
 
 # called by _validate to check if a given key is defined in schema
 sub __key_present_in_schema{
