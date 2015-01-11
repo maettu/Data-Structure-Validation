@@ -12,6 +12,8 @@ my $VERSION = '0.0.1';
 # (public) methods
 ##################
 
+# XXX default
+
 sub new{
     my $class  = shift;
     my $schema = shift || croak '$schema not supplied';
@@ -173,6 +175,14 @@ sub _validate{
             $key, $config_section, $schema_section
         ) if exists $schema_section->{$key}
              and exists $schema_section->{$key}->{validator};
+
+        if (exists $schema_section->{$key}
+            and exists $schema_section->{$key}->{transformer}){
+
+            $config_section->{$key} =
+                $schema_section->{$key}->{transformer}
+                    ->($config_section->{$key});
+        }
 
         my $descend_into;
         if (exists  $schema_section->{$key}
