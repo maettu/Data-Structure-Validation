@@ -187,6 +187,12 @@ sub _validate{
             $self->explain (
                 "skipping '$key' because schema key is empty'");
         }
+        elsif (exists $schema_section->{$key}
+                and ! exists $schema_section->{member}){
+            $self->explain (
+                "not descending into '$key'. No members specified"
+            );
+        }
         else{
             $descend_into = 1;
             $self->explain (">>descending into '$key'\n");
