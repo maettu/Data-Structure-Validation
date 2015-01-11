@@ -6,7 +6,7 @@ use Data::Structure::Validation::Error::Collection;
 # ABSTRACT: Validate a Perl Data Structure with a Schema
 use Carp;
 
-our $VERSION = '0.0.0';
+my $VERSION = '0.0.1';
 
 ##################
 # (public) methods
@@ -178,7 +178,14 @@ sub _validate{
         if (exists  $schema_section->{$key}
                 and $schema_section->{$key}->{no_descend_into}
                 and $schema_section->{$key}->{no_descend_into}){
-            $self->explain ("skipping '$key'\n");
+            $self->explain (
+                "skipping '$key' because schema explicitly says so.\n");
+        }
+        # skip config branch if schema key is empty.
+        elsif (exists $schema_section->{$key}
+                and ! %{$schema_section->{$key}}){
+            $self->explain (
+                "skipping '$key' because schema key is empty'");
         }
         else{
             $descend_into = 1;
@@ -221,7 +228,7 @@ sub _validate{
         }
     }
 
-    # look for missing mandatory keys in schema
+    # look for missing non-optional keys in schema
     # this is only done on this level.
     # Otherwise "mandatory" inherited "upwards".
     $self->_check_mandatory_keys(
