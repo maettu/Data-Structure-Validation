@@ -38,8 +38,7 @@ my $config = {
 my $validator = Data::Structure::Validation->new($schema);
 my @errors = $validator->validate($config, verbose=>0);
 
-use Data::Dumper; print Dumper $config;
+ok ($config->{history} == 3600, 'transformed "1h" into "3600"');
 
-use Data::Dumper; print Dumper \@errors;
 
 done_testing;
