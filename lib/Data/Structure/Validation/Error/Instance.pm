@@ -3,21 +3,26 @@ use strict;
 use warnings;
 package Data::Structure::Validation::Error::Instance;
 
+use overload ('""' => \&stringify);
+
 # an error.
 
 sub new {
     my $class = shift;
-    my %p     = @_;
+    my $self = { @_ };
+    my %keys  = ( map { $_ => 1 } keys %$self );
     for (qw (message path caller)){
-        $p{$_} // die "$_ missing";
+        delete $keys{$_};
+        $self->{$_} // die "$_ missing";
     }
-
-    my $self = {
-        %p
-    };
+    die "Unknown keys ".join(",",keys %keys) if keys %keys;
     bless ($self, $class);
     return $self;
 }
 
-1
+sub stringify {
+    my $self = shift;
+    return $self->{path}.": ".$self->{message};
+}
+1;
 
