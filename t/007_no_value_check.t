@@ -35,7 +35,6 @@ $config = {
 @errors = $validator->validate($config, verbose=>0);
 
 ok (scalar(@errors)==0, 'still no errors');
-use Data::Dumper; print Dumper \@errors;
 
 
 done_testing;

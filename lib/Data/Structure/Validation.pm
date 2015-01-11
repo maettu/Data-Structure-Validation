@@ -188,10 +188,11 @@ sub _validate{
                 "skipping '$key' because schema key is empty'");
         }
         elsif (exists $schema_section->{$key}
-                and ! exists $schema_section->{member}){
+                and ! exists $schema_section->{$key}->{members}){
             $self->explain (
-                "not descending into '$key'. No members specified"
+                "not descending into '$key'. No members specified\n"
             );
+#~             use Data::Dumper; print Dumper $schema_section
         }
         else{
             $descend_into = 1;
