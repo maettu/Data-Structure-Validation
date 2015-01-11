@@ -7,6 +7,11 @@ use Data::Structure::Validation;
 
 my $schema = {
     probe_cfg => {
+        description => 'some magic stuff',
+        validator => sub {
+            my $type = ref shift;
+            return ((not $type or $type eq 'HASH') ? undef : 'expected a hash or a scalar');
+        }
     }
 };
 
