@@ -37,8 +37,17 @@ my $config = {
 
 my $validator = Data::Structure::Validation->new($schema);
 my @errors = $validator->validate($config, verbose=>0);
-
 ok ($config->{history} == 3600, 'transformed "1h" into "3600"');
+
+$config = {
+    history => 'regards, your error :-)',
+};
+@errors = $validator->validate($config);
+
+ok ($config->{history} eq 'regards, your error :-)',
+    'Could not transform "regards, your error :-)"');
+ok ($errors[0]->{message} =~ /^error transforming 'history': specify/,
+    'error from failed transform starts with "error transforming \'history\': specify"');
 
 
 done_testing;

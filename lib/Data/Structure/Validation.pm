@@ -179,9 +179,19 @@ sub _validate{
         if (exists $schema_section->{$key}
             and exists $schema_section->{$key}->{transformer}){
 
-            $config_section->{$key} =
-                $schema_section->{$key}->{transformer}
+            my $return_value;
+            eval {
+                $return_value =
+                    $schema_section->{$key}->{transformer}
                     ->($config_section->{$key});
+
+            };
+            unless ($@){
+                $config_section->{$key} = $return_value;
+            }
+            else{
+                $self->error("error transforming '$key': $@");
+            }
         }
 
         my $descend_into;
