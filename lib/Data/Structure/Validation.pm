@@ -276,8 +276,6 @@ sub _add_defaults{
     my $config_section = shift;
     my $schema_section = shift;
 
-    say 'hello @ add_defaults';
-
     for my $key (keys %{$schema_section}){
         next unless exists $schema_section->{$key}->{default};
         $config_section->{$key} = $schema_section->{$key}->{default}
