@@ -186,16 +186,20 @@ sub _validate{
 
             my $return_value;
             eval {
+                local $SIG{__DIE__};
                 $return_value =
                     $schema_section->{$key}->{transformer}
-                    ->($config_section->{$key});
+                    ->($config_section->{$key},$config_section);
 
             };
-            unless ($@){
-                $config_section->{$key} = $return_value;
+            if (my $err = $@) {
+                if (ref $err eq 'HASH' and $err->{msg}){
+                    $err = $err->{msg};
+                }                
+                $self->error("error transforming '$key': $err");
             }
-            else{
-                $self->error("error transforming '$key': $@");
+            else {
+                $config_section->{$key} = $return_value;
             }
         }
 
