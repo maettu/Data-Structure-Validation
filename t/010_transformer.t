@@ -16,7 +16,7 @@ my $transformer = {
     timespec => sub {
         my $msg = shift;
         sub {
-            if (shift =~ /(\d+)([dmsh]?)/){
+            if (shift =~ /^(\d+)([dmsh]?)$/){
                 return ($1 * $timespecfactor->{($2 || 's')});
             }
             die {msg=>$msg};
