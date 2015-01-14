@@ -19,7 +19,7 @@ my $transformer = {
             if (shift =~ /(\d+)([dmsh]?)/){
                 return ($1 * $timespecfactor->{($2 || 's')});
             }
-            die $msg;
+            die {msg=>$msg};
         }
     }
 };
