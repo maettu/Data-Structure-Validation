@@ -19,7 +19,7 @@ sub add {
     my $self = shift;
     my %p    = @_;
     my $error = Data::Structure::Validation::Error::Instance->new(%p);
-    push $self->{errors}, $error;
+    push @{$self->{errors}}, $error;
 }
 
 sub as_array{
